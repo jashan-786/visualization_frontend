@@ -2,9 +2,6 @@ import React from "react";
 import Footer from "./components/Footer";
 import Header from "./components/Header";
 
-/* Don't forget to download the CSS file too 
-OR remove the following line if you're already using Tailwind */
-
 export const Landing = () => {
   return (
     <div id="webcrumbs">
