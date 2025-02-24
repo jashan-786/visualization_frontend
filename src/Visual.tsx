@@ -1,84 +1,161 @@
 import Graph from "graphology";
-import { useEffect, useRef, useState } from "react";
+import {  useEffect, useRef, useState } from "react";
 import Sigma from "sigma";
 import Header from "./components/Header";
-
-
+import Filter from "./components/Filter";
+import Wrapper from "./components/Wrapper";
+import { connectionUrl } from "./utils/connectionUrl";
+interface GraphData {
+  nodes: Array<{ id: string; label: string; }>;
+  edges: Array<{ source: string; target: string; }>;
+}
 
 export default function Visual() {
   const graphRef = useRef<HTMLDivElement>(null);
-  const [graphData, setGraphData] = useState<any>();
+  const [graphData, setGraphData] = useState<GraphData>();
 
   const [sigmaState, setSigmaState] = useState<any>();
+  const [filter, setFilter] = useState< { Name: string, Email: string}>({ Name: "", Email: "" });
+  const [hoveredNode, setHoveredNode] = useState<any>(null);
+  
+  // async function onclickNodeHandler(id: string) {
+  //   try {
+  //     const response = await fetch(`http://localhost:3000/api/v1/connection/${id}`, {
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //         Authorization: `Bearer ${localStorage.getItem("token")}`,
+  //       },
+  //     });
+
+  //     if (!response.ok) {
+  //       throw new Error('Failed to fetch connections');
+  //     }
+
+  //     const { data: { edges, nodes } } = await response.json();
+  //     console.log(edges);
+  //     if (sigmaState) {
+  //       const graph = sigmaState.getGraph();
+        
+  //       // Add new nodes
+  //       nodes.forEach((node: any) => {
+  //         if (!graph.hasNode(node.id) && node.label !== "Me") {
+  //           graph.addNode(node.id, {
+  //             label: node.label,
+  //             x: Math.random() * 10,
+  //             y: Math.random() * 10,
+  //             size: node.size || 10,
+  //             color: node.color || "#E57373",
+  //             shape: "circle",
+  //           });
+  //         }
+  //       });
+
+  //       // Add new edges
+  //       edges.forEach((edge: any) => {
+  //         // Check both directions for the edge
+  //         const edgeExists = 
+  //           graph.hasEdge(edge.source, edge.target) || 
+  //           graph.hasEdge(edge.target, edge.source);
+          
+  //         if (!edgeExists) {
+  //           graph.addEdge(edge.source, edge.target, {
+  //             type: "line",
+  //             label: edge.label,
+  //             size: edge.size || 2,
+  //             color: edge.color || "#999"
+  //           });
+  //         }
+  //       });
+
+ 
+
+  //     }
+
+
+  //   } catch (error) {
+  //     console.error('Error fetching node connections:', error);
+  //   }
+  // }
+
 
   async function onclickNodeHandler(id: string) {
-    // seprate logic to handle click event for master node
-
-    console.log("clicked", id);
-
-    const response = await fetch(
-      `http://localhost:3000/api/v1/connections/${id}`,
-      {
+    console.log(id);
+    try {
+      const response = await fetch(`${connectionUrl}/api/v1/connection/${id}`, {
         headers: {
           "Content-Type": "application/json",
-
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-      }
-    );
-    const data: { data: { edges: any[]; nodes: any[] } } =
-      await response.json();
-    console.log(  " data from backend ")
-    console.log(data.data);
-    // update the graph state or not ?
-    
-
-    let updatedObj: { edges: any[]; nodes: any[] } = {
-      edges: [],
-      nodes: [],
-    };
-
-    console.log("graph data initally")
-    console.log(graphData)
-    data.data.edges.forEach((edge: any) => 
-    {
-    
-      if (!graphData.edges.some((e : any) => (e.source === edge.source && e.target === edge.target) || (e.source === edge.target && e.target === edge.source) )) {
-       
-        updatedObj.edges.push(edge);
-      }      
       });
-    const graph = sigmaState.getGraph();
-      console.log( " graph data ")
-    console.log( graph)
-    data.data.nodes.forEach((node: any) => {
 
-      console.log(node)
-      if (node.label !== "Me" && !graph.hasNode(node.id) && !graphData.nodes.some((n : any) => (n.id === node.id ) || (n.label ===  node.label)) )
-        updatedObj.nodes.push(node);
-    });
+      if (!response.ok) {
+        throw new Error('Failed to fetch connections');
+      }
 
-    graphData.edges.forEach((edge: any) => updatedObj.edges.push(edge));
-    graphData.nodes.forEach((node: any) => updatedObj.nodes.push(node));
-    console.log("updated obj ")
-    console.log(updatedObj);
-    setGraphData(updatedObj);
+      const { data: { edges, nodes } } = await response.json();
 
-    console.log(graphData);
+      setGraphData((prevData: GraphData | undefined) => {
+        if (!prevData) {
+          return {
+            edges: edges,
+            nodes: nodes
+          };
+        }
 
-    // const graph = sigmaState.getGraph();
-    // making new graph as new nodes were not updating on same graph
+        // Create Sets for faster lookup
+        const existingEdgeSet = new Set(
+          prevData.edges.map((e: any) => `${e.source}-${e.target}`)
+        );
 
-    // Refresh after removing nodes
+        const existingNodeSet = new Set(
+          prevData.nodes.map((n: any) => n.id)
+        );
 
-    
+        // Filter new edges and nodes
+        const newEdges = edges.filter((edge: any) => {
+          const forwardKey = `${edge.source}-${edge.target}`;
+          const reverseKey = `${edge.target}-${edge.source}`;
+          return !existingEdgeSet.has(forwardKey) && !existingEdgeSet.has(reverseKey);
+        });
+
+        const newNodes = nodes.filter((node: any) => 
+          node.label !== "Me" && !existingNodeSet.has(node.id)
+        );
+
+        return {
+          edges: [...prevData.edges, ...newEdges],
+          nodes: [...prevData.nodes, ...newNodes]
+        };
+      });
+
+      
+
+    } catch (error) {
+      console.error('Error fetching node connections:', error);
+    }
   }
+
+
+
+    async function fetchData() {
+      console.log(localStorage.getItem("token"));
+        const response = await fetch(`${connectionUrl}/api/v1/search?name=` + filter.Name + "&email=" + filter.Email, {
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const data = await response.json();
+      console.log(data.data);
+      setGraphData(data.data);
+    }
+  
 
   
   useEffect(() => {
     async function fetchData() {
       console.log(localStorage.getItem("token"));
-      const response = await fetch("http://localhost:3000/api/v1/connections", {
+          const response = await fetch(`${connectionUrl}/api/v1/connections`, {
         headers: {
           "Content-Type": "application/json",
           authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -92,130 +169,154 @@ export default function Visual() {
   }, []);
 
   useEffect(() => {
-    if (graphData != null) {
+    return () => {
+      if (sigmaState) {
+        setSigmaState(null);
+        
+        sigmaState.kill();
+        
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!graphData || !graphRef.current) return;
+
+    try {
       const graph = new Graph();
+
+      // Add nodes
+      graphData.nodes.forEach((node: any) => {
+        if (!graph.hasNode(node.id)) {
+          graph.addNode(node.id, {
+            label: node.label,
+            x: Math.random() * 10,  // Randomize position
+            y: Math.random() * 10,
+            size: node.size || 10,
+            color: node.color || "#E57373",
+            shape: "circle",
+          });
+        }
+      });
+
+      // Add edges
+      graphData.edges.forEach((edge: any) => {
+        if (!graph.hasEdge(edge.source, edge.target)) {
+          graph.addEdge(edge.source, edge.target, {
+            type: "line",
+            label: edge.label,
+            size: edge.size || 2,
+            color: edge.color || "#999"
+          });
+        }
+      });
+
+      const sigmaInstance = new Sigma(graph, graphRef.current, {
+        renderEdgeLabels: true,
+      });
+
+      setSigmaState(sigmaInstance);
+
+      // Event listeners
+      sigmaInstance.on("clickNode", (event: any) => {
+        const clickedNodeId = event?.node;
+        if (clickedNodeId) {
+          onclickNodeHandler(clickedNodeId);
+        }
+     
+      });
+      
+      // sigmaInstance.on("enterNode", (event: any) => {
+      //   console.log("enterNode event triggered:", event);
+      //   const hoveredNodeId = event?.node;
+      //   if (hoveredNodeId && sigmaInstance) {
+      //     console.log("hoveredNodeId:", hoveredNodeId);
+      //     setHoveredNode(hoveredNodeId);
+      //   }
+      //   sigmaInstance.refresh();
+      // });
+
+          
+      // sigmaInstance.on("leaveNode", (event: any) => {
+      //   console.log("leaving node event triggered:", event);
+      //   const hoveredNodeId = event?.node;
+      //   if (hoveredNodeId && sigmaInstance) {
+      //     console.log("hoveredNodeId:", hoveredNodeId);
+      //     setHoveredNode(null);
+      //   }
+      //   sigmaInstance.refresh();
+      // });
+
     
       
-      // Adding nodes
-console.log(graphData)
-      graphData.nodes.forEach((node: any) => {
-
-        if(!graph.hasNode(node.id))
-       
-        graph.addNode(node.id, {
-          label: node.label,
-          x: node.x,
-          y: node.y,
-          size: node.size,
-          color: node.color,
-          shape: "dot",
-        });
-      });
-
-      // Adding edges
-      graphData.edges.forEach((edge: any) => {
-        if(!graph.hasEdge(edge.source, edge.target))
-    
-        graph.addEdge(edge.source, edge.target, { type: "line", label:  edge.label, size: edge.size  , text : " sd",   color: edge.color});
-      });
-
-      // Ensure the graph is created correctly and set the state
-      if (graphRef.current != null) {
-        const sigmaInstance = new Sigma(graph, 
-          graphRef.current , 
-        
-          {
-            // We don't have to declare edgeProgramClasses here, because we only use the default ones ("line" and "arrow")
-          
-            renderEdgeLabels: true,
-          }
-        
-        );
-
-         
-
-        const gr = sigmaInstance.getGraph();
-        setSigmaState(sigmaInstance);
-
-        // Initial filtering of edges based on neighbors count
-        // gr.forEachEdge((edge) => {
-        //   const source = gr.source(edge);
-        //   const target = gr.target(edge);
-
-        //   // Ensure the edge between the source node and the target node is visible
-        //   if (
-        //     source === target ||
-        //     source === target ||
-        //     gr.neighbors(source).length > 1 ||
-        //     gr.neighbors(target).length > 1
-        //   ) {
-        //     gr.setEdgeAttribute(edge, "hidden", false); // Show edge if source or target has more than 1 neighbor
-        //   } else {
-        //     gr.setEdgeAttribute(edge, "hidden", true); // Hide edge if source and target have only 1 neighbor each
-        //   }
-        // });
-        const Camera = sigmaInstance.getCamera();
-        Camera.setState({ ratio: 1.5 });
-        // Event listener for zoom or node interaction
-        sigmaInstance.getCamera().on("updated", () => {
-          const zoomRatio = sigmaInstance.getCamera().ratio;
-          console.log("Zoom Ratio:", zoomRatio); // Log the zoom ratio for debugging
-
-          // Camera.setState({ ratio: 1.5, x: 0, y: 0, angle: 0 });
-          // Update visibility based on zoom ratio
-          //   gr.forEachEdge((edge) => {
-          //     const source = gr.source(edge);
-          //     const target = gr.target(edge);
-
-          //     if (zoomRatio < 0.5) {
-          //       if (
-          //         gr.neighbors(source).length <= 1 ||
-          //         gr.neighbors(target).length <= 1
-          //       ) {
-          //         gr.setEdgeAttribute(edge, "hidden", false); // Show edge when zoomed in
-          //       } else {
-          //         gr.setEdgeAttribute(edge, "hidden", true); // Hide other edges when zoomed out
-          //       }
-          //     } else {
-          //       // Show more connections when zoomed out
-          //       if (
-          //         gr.neighbors(source).length <= 1 ||
-          //         gr.neighbors(target).length <= 1
-          //       ) {
-          //         gr.setEdgeAttribute(edge, "hidden", false); // Show edge
-          //       } else {
-          //         gr.setEdgeAttribute(edge, "hidden", true); // Hide edge
-          //       }
-          //     }
-          //   });
-          // });
-        });
-        // Event listener for node click to show related edges
-        sigmaInstance.on("clickNode", (event: any) => {
-          // Log the clicked node for debugging
-          const clickedNodeId = event?.node;
-          console.log("clickedNodeId", clickedNodeId);
-          onclickNodeHandler(clickedNodeId);
-
-          if (!clickedNodeId) {
-            console.error("No node clicked or invalid data structure");
-            return;
-          }
-        });
-
-        return () => {
-          // Refresh the graph
-          sigmaInstance.kill(); // Clean up to avoid duplicate instances
-        };
-      }
+      return () => {
+        console.log("killing sigma instance");
+        sigmaInstance.kill();
+      };
+    } catch (error) {
+      console.error("Error creating graph:", error);
     }
   }, [graphData]);
 
-  return (
-    <>
-      <Header />
+ 
 
-      <div className=" bg-gray-300  w- h-screen" ref={graphRef} />
-    </>
+  useEffect(() => {
+    fetchData();
+  }, [filter]);
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      {localStorage.getItem("token") ? (
+        <div className="flex flex-col md:flex-row flex-1">
+          <div className="w-full md:w-64 lg:w-72 bg-white shadow-md z-10">
+            <Filter setFilter={setFilter} />
+          </div>
+          
+          <div className="flex-1 relative bg-gray-100">
+            <div 
+              ref={graphRef} 
+              className="w-full h-[calc(100vh-64px)] md:h-screen"
+            >
+              {hoveredNode && (
+                <div
+                  className="absolute bg-white p-3 sm:p-4 rounded-lg shadow-lg z-50 max-w-[90%] sm:max-w-[300px]"
+                  style={{
+                    top: '20px',
+                    right: '20px',
+                    border: '1px solid #ddd'
+                  }}
+                >
+                  <h1 className="text-base sm:text-lg font-bold mb-2">Node Information</h1>
+                  {/* Add your node information content here */}
+                </div>
+              )}
+            </div>
+
+            {/* Optional: Add a mobile toggle for filter */}
+            <button 
+              className="fixed bottom-4 right-4 md:hidden bg-indigo-600 text-white p-3 rounded-full shadow-lg z-20"
+              onClick={() => {/* Toggle mobile filter visibility */}}
+            >
+              <svg 
+                className="w-6 h-6" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" 
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <Wrapper />
+      )}
+    </div>
   );
 }
