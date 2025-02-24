@@ -10,7 +10,7 @@ export const Landing = () => {
           <h2 className="text-2xl md:text-3xl font-bold mb-2 md:mb-3 text-neutral-950">
             Explore Connections Like Never Before
           </h2>
-          <p className="text-neutral-600">
+          <p className="text-neutral-600 text-sm  p-4">
             Our platform enables you to visualize and make relationships in a
             dynamic way.
           </p>
