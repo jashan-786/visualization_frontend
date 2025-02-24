@@ -23,7 +23,7 @@ export const Landing = () => {
           >
             <div className="absolute w-full h-full flex justify-center items-center">
               <p className="text-neutral-500">
-                <img src="./public/earth_2.jpg" alt="placeholder" />
+                <img src="public/earth_2.jpg" alt="placeholder" />
               </p>
             </div>
           </div>
