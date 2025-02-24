@@ -1,4 +1,3 @@
-
 import Footer from "./components/Footer";
 import Header from "./components/Header";
 
@@ -6,9 +5,9 @@ export const Landing = () => {
   return (
     <div id="webcrumbs">
       <Header />
-      <main className="p-10">
-        <section className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-3 text-neutral-950">
+      <main className="p-4 sm:p-6 md:p-10">
+        <section className="text-center mb-8 md:mb-12">
+          <h2 className="text-2xl md:text-3xl font-bold mb-2 md:mb-3 text-neutral-950">
             Explore Connections Like Never Before
           </h2>
           <p className="text-neutral-600">
@@ -16,19 +15,19 @@ export const Landing = () => {
             dynamic way.
           </p>
         </section>
-        <section className="flex justify-center mb-12">
+        <section className="flex justify-center mb-8 md:mb-12">
           <div
-            style={{ width: "800px", height: "400px", position: "relative" }}
-            className="rounded-lg bg-neutral-100"
+            style={{ maxWidth: "800px", height: "300px", position: "relative" }}
+            className="w-full md:h-[400px] rounded-lg bg-neutral-100"
           >
             <div className="absolute w-full h-full flex justify-center items-center">
               <p className="text-neutral-500">
-                <img src="/earth_2.jpg" alt="placeholder" />
+                <img src="/earth_2.jpg" alt="placeholder" className="max-w-full max-h-full object-contain" />
               </p>
             </div>
           </div>
         </section>
-        <section className="grid grid-cols-3 gap-6">
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           <div className="p-6 bg-neutral-50 rounded-md text-center shadow-sm">
             <i className="fa-solid fa-sitemap text-primary-500 text-4xl mb-4"></i>
             <h3 className="text-lg font-bold mb-2 text-neutral-950">
