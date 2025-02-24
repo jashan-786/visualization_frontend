@@ -5,10 +5,12 @@ import Header from "./components/Header";
 import Filter from "./components/Filter";
 import Wrapper from "./components/Wrapper";
 import { connectionUrl } from "./utils/connectionUrl";
+
 interface GraphData {
   nodes: Array<{ id: string; label: string; }>;
   edges: Array<{ source: string; target: string; }>;
 }
+
 
 export default function Visual() {
   const graphRef = useRef<HTMLDivElement>(null);
@@ -16,7 +18,6 @@ export default function Visual() {
 
   const [sigmaState, setSigmaState] = useState<any>();
   const [filter, setFilter] = useState< { Name: string, Email: string}>({ Name: "", Email: "" });
-  const [hoveredNode, setHoveredNode] = useState<any>(null);
   
   // async function onclickNodeHandler(id: string) {
   //   try {
@@ -277,41 +278,7 @@ export default function Visual() {
             <div 
               ref={graphRef} 
               className="w-full h-[calc(100vh-64px)] md:h-screen"
-            >
-              {hoveredNode && (
-                <div
-                  className="absolute bg-white p-3 sm:p-4 rounded-lg shadow-lg z-50 max-w-[90%] sm:max-w-[300px]"
-                  style={{
-                    top: '20px',
-                    right: '20px',
-                    border: '1px solid #ddd'
-                  }}
-                >
-                  <h1 className="text-base sm:text-lg font-bold mb-2">Node Information</h1>
-                  {/* Add your node information content here */}
-                </div>
-              )}
-            </div>
-
-            {/* Optional: Add a mobile toggle for filter */}
-            <button 
-              className="fixed bottom-4 right-4 md:hidden bg-indigo-600 text-white p-3 rounded-full shadow-lg z-20"
-              onClick={() => {/* Toggle mobile filter visibility */}}
-            >
-              <svg 
-                className="w-6 h-6" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" 
-                />
-              </svg>
-            </button>
+            />
           </div>
         </div>
       ) : (

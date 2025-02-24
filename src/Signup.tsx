@@ -1,10 +1,9 @@
-import React, { useRef } from "react";
+import { useRef } from "react";
 import { IoClose } from "react-icons/io5";
 import { IoMdPerson } from "react-icons/io";
 import { CiMail } from "react-icons/ci";
 import { CiLock } from "react-icons/ci";
 import axios from "axios";
-import { BsPass } from "react-icons/bs";
 import { useNavigate } from "react-router-dom";
 import Header from "./components/Header";
 import { connectionUrl } from "./utils/connectionUrl";
