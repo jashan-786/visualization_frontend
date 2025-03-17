@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@react-sigma/core": "^5.0.2",
     "@sigma/node-image": "^3.0.0",
     "@tailwindcss/vite": "^4.0.0",
     "axios": "^1.7.9",
@@ -19,7 +20,9 @@
     "react-icons": "^5.4.0",
     "react-router-dom": "^7.1.3",
     "sigma": "^3.0.1",
-    "toast": "^0.5.4"
+    "sigma-react": "^1.2.10",
+    "toast": "^0.5.4",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

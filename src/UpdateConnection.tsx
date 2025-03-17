@@ -1,34 +1,35 @@
-import { IoIosClose } from "react-icons/io"
-import { CiMail } from "react-icons/ci"
-import { MdOutlineBadge } from "react-icons/md"
-import Wrapper from "./components/Wrapper"
-import Header from "./components/Header"
+import { IoIosClose } from "react-icons/io";
+import { CiMail } from "react-icons/ci";
+import { MdOutlineBadge } from "react-icons/md";
+import Wrapper from "./components/Wrapper";
+import Header from "./components/Header";
 import { useNavigate } from "react-router-dom";
-import { useRef} from "react";
-import axios from "axios"
-import { connectionUrl } from "./utils/connectionUrl";    
+import { useRef, useState } from "react";
+import axios from "axios";
+import { connectionUrl } from "./utils/connectionUrl";
 export const UpdateConnection = () => {
+  const [entityType, setEntityType] = useState("Normal");
 
- 
   const onClickHandler = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    
+
     const prevEmail = prevEmailRef.current?.value;
     const email = emailRef.current?.value;
     const username = usernameRef.current?.value;
     const description = descriptionRef.current?.value;
 
     try {
-      const response = await axios.post(`${connectionUrl}/api/v1/updateUser`, 
-        { prevEmail, email, username, description },
+      const response = await axios.post(
+        `${connectionUrl}/api/v1/updateUser`,
+        { prevEmail, email, username, description, entityType },
         {
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${localStorage.getItem("token")}`
-          }
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
         }
       );
-      
+
       if (response.data.user) {
         alert("User updated successfully");
         navigate("/");
@@ -39,7 +40,7 @@ export const UpdateConnection = () => {
       console.log(error);
       alert("Failed to update user");
     }
-  }
+  };
   const navigate = useNavigate();
   const prevEmailRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
@@ -52,7 +53,7 @@ export const UpdateConnection = () => {
     if (emailRef.current) emailRef.current.value = "";
     if (usernameRef.current) usernameRef.current.value = "";
     if (descriptionRef.current) descriptionRef.current.value = "";
-  }
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -115,6 +116,46 @@ export const UpdateConnection = () => {
                         className="w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300 h-24 sm:h-32 resize-none"
                       />
                     </div>
+
+                    <div className="relative flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                      <div>
+                        <p className="text-lg sm:text-xl">Enity Type</p>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:gap-16 sm:ml-4">
+                        <div className="flex items-center gap-0.5">
+                          <input
+                            type="radio"
+                            name="entityType"
+                            defaultChecked
+                            onChange={() => {
+                              console.log(entityType);
+                              setEntityType("Normal");
+                            }}
+                            // onChange={() => setConnectionType("direct")}
+                          />
+                          <label className="mx-2" htmlFor="direct">
+                            Normal
+                          </label>
+                        </div>
+
+                        <div className="flex items-center py-2 gap-0.5">
+                          <input
+                            type="radio"
+                            name="entityType"
+                            value="indirect"
+                            onChange={() => {
+                              console.log(entityType);
+                              setEntityType("Workplace");
+                            }}
+                            // checked={connectionType === "indirect"}
+                            // onChange={() => setConnectionType("indirect")}
+                          />
+                          <label className="mx-2" htmlFor="indirect">
+                            Workplace
+                          </label>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-3 pt-4">
@@ -143,6 +184,4 @@ export const UpdateConnection = () => {
   );
 };
 
-
 export default UpdateConnection;
-
