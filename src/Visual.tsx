@@ -219,12 +219,12 @@ export default function Visual() {
            
             </SigmaContainer>
             { hoveredNode && 
-              <div className="absolute top-0 right-0 p-4 bg-white shadow-md">
-                <p className="text-sm"> id : {hoveredNode ? hoveredNode.id : ""}</p>
-                <p className="text-sm"> Label : {hoveredNode ? hoveredNode.Label : ""}</p>
-                <p className="text-sm"> Description : {hoveredNode ? hoveredNode.Description : ""}</p>
-                <p className="text-sm"> Email: {hoveredNode ? hoveredNode.Email : ""}</p>
-                <p className="text-sm"> Phone Number: {hoveredNode ? hoveredNode.phoneNumber : ""}</p>
+              <div className="absolute top-16 right-16 p-4  shadow-md bg-gray-400 border-1">
+                <p className="text-md"> id : {hoveredNode ? hoveredNode.id : ""}</p>
+                <p className="text-md"> Label : {hoveredNode ? hoveredNode.Label : ""}</p>
+                <p className="text-md"> Description : {hoveredNode ? hoveredNode.Description : ""}</p>
+                <p className="text-md"> Email: {hoveredNode ? hoveredNode.Email : ""}</p>
+                <p className="text-md"> Phone Number: {hoveredNode ? hoveredNode.phoneNumber : ""}</p>
               </div>
 }
           
