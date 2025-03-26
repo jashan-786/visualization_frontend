@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useRef, useState } from "react";
 import Wrapper from "./components/Wrapper";
 import { connectionUrl } from "./utils/connectionUrl";
-
+import {z} from "zod";
 function debounce<T extends (...args: any[]) => void>(
   func: T,
   delay: number
@@ -22,12 +22,29 @@ function debounce<T extends (...args: any[]) => void>(
 }
 
 interface ConnectionData {
+  mainPhone: string;
   mainUserEmail: string;
   mainUserName: string;
+  conPhone: string;
   conUserEmail: string;
   conUserName: string;
   connection: string;
 }
+
+
+
+const formObject = z.object({
+
+mainemail: z.string().email("Invalid email format"),
+conemail: z.string().email("Invalid email format"),
+  mainphone: z.string().regex(/[0-9]{3}-[0-9]{3}-[0-9]{4}/, "Invalid phone format"),
+  conphone: z.string().regex(/[0-9]{3}-[0-9]{3}-[0-9]{4}/, "Invalid phone format"),
+  entityType: z.string().min(1, "Connection type is required"),
+  connection: z.string().min(1, "Connection is required"),
+  mainusername: z.string().min(1, "Username is required"),
+  conusername: z.string().min(1, "Username is required"),
+});
+
 
 export const AddConnection = () => {
   const navigate = useNavigate();
@@ -36,6 +53,8 @@ export const AddConnection = () => {
   const mainUserName = useRef<HTMLInputElement>(null);
   const conUserName = useRef<HTMLInputElement>(null);
   const connection = useRef<HTMLInputElement>(null);
+  const mainPhoneRef = useRef<HTMLInputElement>(null);
+  const conPhoneRef = useRef<HTMLInputElement>(null);
   const [selecteduser, setSelectedUser] = useState<any>(null);
   const [selecteduser2, setSelectedUser2] = useState<any>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -44,7 +63,10 @@ export const AddConnection = () => {
   const [loading2, setLoading2] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [users2, setUsers2] = useState<any[]>([]);
-  const [connectionType, setConnectionType] = useState<string>("");
+  const [connectionType, setConnectionType] = useState<string>("Normal");
+
+  const[errors, setErrors] = useState<{ [Key: string] : string}>({})
+
   const searchuser = debounce(async (email: string, loadingValue: string) => {
     console.log("true");
     console.log(email);
@@ -81,6 +103,8 @@ export const AddConnection = () => {
   }, 1000);
 
   const addConnection = async (data: { connections: ConnectionData[] }) => {
+
+
     console.log(data);
     const response = await fetch(`${connectionUrl}/api/v1/addConnection`, {
       method: "POST",
@@ -102,34 +126,54 @@ export const AddConnection = () => {
       }
     }
   };
-
+  
+  
   const handleAddConnection = () => {
-    if (
-      !mainUserEmail.current?.value ||
-      !conUserEmail.current?.value ||
-      !mainUserName.current?.value ||
-      !conUserName.current?.value ||
-      !connection.current?.value ||
-      !connectionType
-    ) {
-      alert("Please fill in all required fields");
+
+
+    try {
+      formObject.parse({
+        mainemail: mainUserEmail.current?.value,
+        conemail: conUserEmail.current?.value,
+        mainphone: mainPhoneRef.current?.value,
+        conphone: conPhoneRef.current?.value,
+        entityType: connectionType,
+        connection: connection.current?.value,
+        mainusername: mainUserName.current?.value,
+        conusername: conUserName.current?.value,
+      })
+
+      setErrors({});
+    } catch (error) {
+      if(error instanceof z.ZodError){
+       
+        error.errors.map((error) => {
+          setErrors((prev) => {
+            return {...prev, [error.path[0]]: error.message}
+
+          })
+
+        })
+          console.log(error.errors);
       return;
     }
-    if (localStorage.getItem("token") == null) {
-      alert("Please login to add connection");
-      return;
-    }
+  }
 
     let Connections = [];
 
+  
+
     Connections.push({
-      mainUserEmail: mainUserEmail.current.value,
-      mainUserName: mainUserName.current.value,
-      conUserEmail: conUserEmail.current.value,
-      conUserName: conUserName.current.value,
-      connection: connection.current.value,
+      mainPhone: mainPhoneRef.current ? mainPhoneRef.current.value : "",
+      conPhone: conPhoneRef.current ? conPhoneRef.current.value : "",
+      mainUserEmail: mainUserEmail.current ? mainUserEmail.current.value : "",
+      mainUserName: mainUserName.current ? mainUserName.current.value : "",
+      conUserEmail: conUserEmail.current ? conUserEmail.current.value : "",
+      conUserName: conUserName.current ? conUserName.current.value : "",
+      connection: connection.current ? connection.current.value : "",
       entityType: connectionType,
     });
+  
     console.log(Connections);
     addConnection({ connections: Connections });
   };
@@ -177,11 +221,14 @@ export const AddConnection = () => {
 
           // Additional schema validation (example)
           const isValid = json.connections.some((connection: any) => {
+            !connection.mainPhone ||
+              !connection.conPhone ||
             !connection.mainUserEmail ||
               !connection.conUserEmail ||
               !connection.mainUserName ||
               !connection.conUserName ||
-              !connection.connection;
+              !connection.connection 
+              ;
           });
 
           if (isValid) {
@@ -195,16 +242,16 @@ export const AddConnection = () => {
       };
       reader.readAsText(file);
     });
-  };
+  }
 
   return (
     <div className="flex flex-col justify-between min-h-screen">
       <Header />
 
       {localStorage.getItem("token") ? (
-        <div className="py-6 sm:py-12 flex items-center justify-center bg-gray-100 px-4 sm:px-6">
+        <div className="py-6  sm:py-12 flex items-center justify-center bg-gray-100 px-4 sm:px-6">
           <div className="w-full max-w-[600px] bg-white rounded-lg shadow-lg p-4 sm:p-8">
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <div className="flex  items-center justify-between mb-4 sm:mb-6">
               <h1 className="text-xl sm:text-2xl font-bold">Add Connection</h1>
               <button
                 type="button"
@@ -218,7 +265,51 @@ export const AddConnection = () => {
               </button>
             </div>
 
-            <div className="space-y-4 sm:space-y-6">
+            <div className="relative">
+              <div className="w-full max-w-sm">
+                <label
+                  htmlFor="phone-input"
+                  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                >
+                  Main Phone number:
+                </label>
+                <div className="relative ">
+                  <div className="absolute inset-y-0 start-0 top-0 flex items-center ps-3.5 pointer-events-none">
+                    <svg
+                      className="w-4 h-4 text-gray-500 dark:text-gray-400"
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="currentColor"
+                      viewBox="0 0 19 18"
+                    >
+                      <path d="M18 13.446a3.02 3.02 0 0 0-.946-1.985l-1.4-1.4a3.054 3.054 0 0 0-4.218 0l-.7.7a.983.983 0 0 1-1.39 0l-2.1-2.1a.983.983 0 0 1 0-1.389l.7-.7a2.98 2.98 0 0 0 0-4.217l-1.4-1.4a2.824 2.824 0 0 0-4.218 0c-3.619 3.619-3 8.229 1.752 12.979C6.785 16.639 9.45 18 11.912 18a7.175 7.175 0 0 0 5.139-2.325A2.9 2.9 0 0 0 18 13.446Z" />
+                    </svg>
+                  </div>
+                  <input
+                    ref={mainPhoneRef}
+                    type="text"
+                    id="phone-input"
+                    aria-describedby="helper-text-explanation"
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                    pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}"
+                    placeholder="123-456-7890"
+                    required
+                  />
+                </div>
+                <p
+                  id="helper-text-explanation"
+                  className="mt-2 text-sm text-gray-500 dark:text-gray-400"
+                >
+                  Select a phone number that matches the format.
+                </p>
+              </div>
+
+              {errors.mainphone && (
+                <p className="text-red-500 text-sm">{errors.mainphone}</p>
+              )}
+            </div>
+
+            <div className="space-y-5 my-4 sm:space-y-6">
               <div className="relative">
                 <input
                   ref={mainUserEmail}
@@ -234,6 +325,10 @@ export const AddConnection = () => {
                 <span className="material-symbols-outlined absolute right-3 top-3">
                   <CiMail />
                 </span>
+
+                {errors.mainemail && (
+                <p className="text-red-500 text-sm">{errors.mainemail}</p>
+              )}
                 {loading && (
                   <div className=" w-auto  h-max my-2 border-2 bg-gray-300 ">
                     Searching...
@@ -276,6 +371,53 @@ export const AddConnection = () => {
                 <span className="material-symbols-outlined absolute right-3 top-3">
                   <CiMail />
                 </span>
+                {errors.mainusername && (
+                <p className="text-red-500 text-sm">{errors.mainusername}</p>
+              )}
+              </div>
+
+              <div className="relative">
+                <div className="w-full max-w-sm">
+                  <label
+                    htmlFor="phone-input"
+                    className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                  >
+                   Connection Phone number:
+                  </label>
+                  <div className="relative ">
+                    <div className="absolute inset-y-0 start-0 top-0 flex items-center ps-3.5 pointer-events-none">
+                      <svg
+                        className="w-4 h-4 text-gray-500 dark:text-gray-400"
+                        aria-hidden="true"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="currentColor"
+                        viewBox="0 0 19 18"
+                      >
+                        <path d="M18 13.446a3.02 3.02 0 0 0-.946-1.985l-1.4-1.4a3.054 3.054 0 0 0-4.218 0l-.7.7a.983.983 0 0 1-1.39 0l-2.1-2.1a.983.983 0 0 1 0-1.389l.7-.7a2.98 2.98 0 0 0 0-4.217l-1.4-1.4a2.824 2.824 0 0 0-4.218 0c-3.619 3.619-3 8.229 1.752 12.979C6.785 16.639 9.45 18 11.912 18a7.175 7.175 0 0 0 5.139-2.325A2.9 2.9 0 0 0 18 13.446Z" />
+                      </svg>
+                    </div>
+                    <input
+                      ref={conPhoneRef}
+                      type="text"
+                      id="phone-input"
+                      aria-describedby="helper-text-explanation"
+                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                      pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}"
+                      placeholder="123-456-7890"
+                      required
+                    />
+                  </div>
+                  <p
+                    id="helper-text-explanation"
+                    className="mt-2 text-sm text-gray-500 dark:text-gray-400"
+                  >
+                    Select a phone number that matches the format.
+                  </p>
+                </div>
+
+                {errors.conphone && (
+                  <p className="text-red-500 text-sm">{errors.conphone}</p>
+                )}
               </div>
 
               <div className="relative">
@@ -292,6 +434,10 @@ export const AddConnection = () => {
                 <span className="material-symbols-outlined absolute right-3 top-3">
                   <MdOutlineBadge />
                 </span>
+                
+                {errors.conemail && (
+                  <p className="text-red-500 text-sm">{errors.conemail}</p>
+                )}
               </div>
               {loading2 && (
                 <div className=" w-auto  h-max my-2 border-2 bg-gray-300 ">
@@ -334,6 +480,9 @@ export const AddConnection = () => {
                 <span className="material-symbols-outlined absolute right-3 top-3">
                   <CiMail />
                 </span>
+                {errors.conusername && (
+                <p className="text-red-500 text-sm">{errors.conusername}</p>
+              )}
               </div>
 
               <div className="relative flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
@@ -346,6 +495,7 @@ export const AddConnection = () => {
                       type="radio"
                       name="connectionType"
                       value="direct"
+                      defaultChecked
                       onChange={() => {
                         setConnectionType("Normal");
                         if (connection.current) {
@@ -353,6 +503,9 @@ export const AddConnection = () => {
                           connection.current.disabled = false;
                           connection.current.style.backgroundColor = "white";
                         }
+
+                        console.log(connection);
+                        console.log(connectionType);
                       }}
                       // onChange={() => setConnectionType("direct")}
                     />
@@ -384,6 +537,10 @@ export const AddConnection = () => {
                     </label>
                   </div>
                 </div>
+                {errors.connection && (
+                <p className="text-red-500 text-sm">{errors.entityType}</p>
+              )}
+              
               </div>
 
               <div className="relative">
@@ -396,6 +553,9 @@ export const AddConnection = () => {
                 <span className="material-symbols-outlined absolute right-3 top-3">
                   <MdOutlineBadge />
                 </span>
+                {errors.connection && (
+                <p className="text-red-500 text-sm">{errors.connection}</p>
+              )}
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-0 sm:justify-between">

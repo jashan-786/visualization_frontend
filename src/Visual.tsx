@@ -3,18 +3,21 @@ import Graph from "graphology";
 import { ControlsContainer, FullScreenControl, SigmaContainer, useLoadGraph, useRegisterEvents, useSigma , ZoomControl} from "@react-sigma/core";
 import "@react-sigma/core/lib/style.css";
 import Header from "./components/Header";
-import Filter from "./components/Filter";
+import Filter, { InputType } from "./components/Filter";
 import Wrapper from "./components/Wrapper";
 import { connectionUrl } from "./utils/connectionUrl";
+import { string } from "zod";
 
 interface Node {
   id: string;
   label: string;
-  description?: string;  // Make description optional
+  description?: string; 
+  email: string // Make description optional
+  phoneNumber: string
 }
 
 // Component that handles graph loading and interactions
-const LoadGraph = ({filter , setHoveredNode} : {filter : any , setHoveredNode :  (description: string | null) => void}) => {
+const LoadGraph = ({filter , setHoveredNode} : {filter : InputType , setHoveredNode :  ( inp: {[key : string] : any} | null) => void }) => {
   const loadGraph = useLoadGraph();
   const sigma = useSigma();
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -79,7 +82,7 @@ const LoadGraph = ({filter , setHoveredNode} : {filter : any , setHoveredNode : 
   useEffect(() => { 
     console.log("filter changed");
     const fetchData = async () => {
-      const response = await fetch(`${connectionUrl}/api/v1/search?name=${filter.Name}&email=${filter.Email}`, {
+      const response = await fetch(`${connectionUrl}/api/v1/search?name=${filter.Name}&email=${filter.Email}&phoneNumber=${filter.phoneNumber}`, {
         headers: {
           "Content-Type": "application/json",
           authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -150,9 +153,13 @@ const LoadGraph = ({filter , setHoveredNode} : {filter : any , setHoveredNode : 
       const node = nodes.find((n: Node) => n.id === event.node);
 
       console.log(node);
-      if (node?.description) {
-        console.log(node.description);
-        setHoveredNode(node.description);
+
+      const obj= { "id": event.node  ,"Label" : node ? node.label : "" , "Description" : node? node.description : "" , "Email" : node ? node.email : "" , "phoneNumber" : node ? node.phoneNumber : ""};
+
+      console.log(obj);
+      if (obj != null) {
+ 
+        setHoveredNode(obj);
       }
       sigma.getContainer().style.cursor = "pointer";
     });
@@ -175,8 +182,8 @@ const LoadGraph = ({filter , setHoveredNode} : {filter : any , setHoveredNode : 
 
 // Main Visual component
 export default function Visual() {
-  const [filter, setFilter] = useState<{ Name: string, Email: string }>({ Name: "", Email: "" });
-  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [filter, setFilter] = useState< InputType>({ Name: "", Email: "" , phoneNumber: "" });
+  const [hoveredNode, setHoveredNode] = useState<{ [key: string]: string } | null>(null);
   
   return (
     <div className="flex flex-col w-auto ">
@@ -213,7 +220,11 @@ export default function Visual() {
             </SigmaContainer>
             { hoveredNode && 
               <div className="absolute top-0 right-0 p-4 bg-white shadow-md">
-                <p className="text-sm">{hoveredNode}</p>
+                <p className="text-sm"> id : {hoveredNode ? hoveredNode.id : ""}</p>
+                <p className="text-sm"> Label : {hoveredNode ? hoveredNode.Label : ""}</p>
+                <p className="text-sm"> Description : {hoveredNode ? hoveredNode.Description : ""}</p>
+                <p className="text-sm"> Email: {hoveredNode ? hoveredNode.Email : ""}</p>
+                <p className="text-sm"> Phone Number: {hoveredNode ? hoveredNode.phoneNumber : ""}</p>
               </div>
 }
           

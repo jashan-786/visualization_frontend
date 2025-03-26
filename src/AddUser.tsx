@@ -8,48 +8,66 @@ import { CiMail } from "react-icons/ci";
 import { connectionUrl } from "./utils/connectionUrl";
 import {z} from "zod";
 
-const formObject= z.object({
-"userName": z.string(),
-"email": z.string().email(),
-"phone": z.string().regex(/[0-9]{3}-[0-9]{3}-[0-9]{4}/),
-"entityType": z.string(),
-"description": z.string(),
+const formObject = z.object({
+  userName: z.string().min(1, "Username is required"), // Added min(1) to ensure it's not empty
+  email: z.string().email("Invalid email format"),
+  phone: z.string().regex(/[0-9]{3}-[0-9]{3}-[0-9]{4}/, "Invalid phone format"),
+  entityType: z.string(),
+  description: z.string().min(1, "Description is required"),
+});
 
-})
 export default function AddUser() {
   const navigate = useNavigate();
+
+  const emailRef = useRef<HTMLInputElement>(null);
+  const usernameRef = useRef<HTMLInputElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
+  const [entityType, setEntityType] = useState<string>("Normal");
+
+
+  const [error , setErros]= useState<{ [Key: string] : string}>({});
+
   const onClickHandler = async () => {
     const email = emailRef.current?.value;
     const username = usernameRef.current?.value;
     const description = descriptionRef.current?.value;
-    console.log(email, username, description);
+    const phone = phoneRef.current?.value;
 
-    try{
-    const res= formObject.parse({
-      userName: username,
-      email: email,
-      phone: phoneRef.current?.value,
-      entityType: entityType,
-      description: description
-    })
-    console.log(res)
+    try {
+      // First, validate input using Zod
+      const res = formObject.parse({
+        userName: username,
+        email: email,
+        phone: phone,
+        entityType: entityType,
+        description: description,
+      });
+      console.log(res);
 
-  }
-  catch(err){
+      setErros({});
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        console.log("Validation Errors:", err.errors);
+        
+        const errorMessages: { [Key: string] : string} = {};
 
-    if(err instanceof z.ZodError){
-      console.log(err.errors)
+        err.errors.forEach((error) => {
+          errorMessages[error.path[0]] = error.message;
+        });
+
+        console.log(errorMessages);
+        setErros(errorMessages);
+
+        return; //  Stop execution if validation fails
+      }
     }
-  }
-    if (!email || !username || !description || !phoneRef.current?.value) {
-      alert("Email and Username are required");
-      return;
-    }
+
+  
     try {
       const response = await axios.post(
         `${connectionUrl}/api/v1/adduser`,
-        { email, username, description, entityType },
-
+        { email, username, description, entityType,  phoneNumber: phone },
         {
           headers: {
             "Content-Type": "application/json",
@@ -57,6 +75,7 @@ export default function AddUser() {
           },
         }
       );
+
       console.log(response);
       if (response.status === 201) {
         alert("User added successfully");
@@ -72,14 +91,9 @@ export default function AddUser() {
     if (emailRef.current) emailRef.current.value = "";
     if (usernameRef.current) usernameRef.current.value = "";
     if (descriptionRef.current) descriptionRef.current.value = "";
-    if(phoneRef.current) phoneRef.current.value = "";
+    if (phoneRef.current) phoneRef.current.value = "";
   };
-
-  const emailRef = useRef<HTMLInputElement>(null);
-  const usernameRef = useRef<HTMLInputElement>(null);
-  const descriptionRef = useRef<HTMLTextAreaElement>(null);
-  const phoneRef = useRef<HTMLInputElement>(null);
-  const [entityType, setEntityType] = useState<string>("Normal");
+{
 
   return (
     <div className=" flex flex-col justify-between">
@@ -142,6 +156,8 @@ export default function AddUser() {
                         Select a phone number that matches the format.
                       </p>
                     </div>
+
+                    { error.phone && <p className="text-red-500 text-sm">{error.phone}</p> }
                   </div>
                   <div className="relative">
                     <input
@@ -153,6 +169,7 @@ export default function AddUser() {
                     <span className="material-symbols-outlined absolute right-3 top-3">
                       <CiMail />
                     </span>
+                    {error.email && <p className="text-red-500 text-sm">{error.email}</p>}
                   </div>
 
                   <div className="relative">
@@ -165,6 +182,7 @@ export default function AddUser() {
                     <span className="material-symbols-outlined absolute right-3 top-3">
                       <CiMail />
                     </span>
+                    {error.userName && <p className="text-red-500 text-sm">{error.userName}</p>}
                   </div>
 
                   <div className="relative flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
@@ -214,6 +232,7 @@ export default function AddUser() {
                       className="w-full px-3 md:px-4 py-2 md:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300 h-24 md:h-32 resize-none"
                     />
                   </div>
+                  {error.description && <p className="text-red-500 text-sm">{error.description}</p>}
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 pt-4">
@@ -248,4 +267,5 @@ export default function AddUser() {
       )}
     </div>
   );
+}
 }
