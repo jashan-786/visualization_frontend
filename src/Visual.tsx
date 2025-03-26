@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import Graph from "graphology";
-import { ControlsContainer, FullScreenControl, SigmaContainer, useLoadGraph, useRegisterEvents, useSigma , ZoomControl} from "@react-sigma/core";
+import { ControlsContainer, FullScreenControl, SigmaContainer, useLoadGraph,  useSigma , ZoomControl} from "@react-sigma/core";
 import "@react-sigma/core/lib/style.css";
 import Header from "./components/Header";
 import Filter, { InputType } from "./components/Filter";
 import Wrapper from "./components/Wrapper";
 import { connectionUrl } from "./utils/connectionUrl";
-import { string } from "zod";
+
 
 interface Node {
   id: string;
