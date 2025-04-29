@@ -1,49 +1,199 @@
-import { useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import Graph from "graphology";
-import { ControlsContainer, FullScreenControl, SigmaContainer, useLoadGraph,  useSigma , ZoomControl} from "@react-sigma/core";
+import {
+  ControlsContainer,
+  FullScreenControl,
+  SigmaContainer,
+  useLoadGraph,
+  useSigma,
+  ZoomControl,
+} from "@react-sigma/core";
 import "@react-sigma/core/lib/style.css";
 import Header from "./components/Header";
 import Filter, { InputType } from "./components/Filter";
 import Wrapper from "./components/Wrapper";
 import { connectionUrl } from "./utils/connectionUrl";
-
+import { set, string } from "zod";
+import { addConnection, ConnectionData, formObject } from "./AddConnection";
 
 interface Node {
   id: string;
   label: string;
-  description?: string; 
-  email: string // Make description optional
-  phoneNumber: string
+  description?: string;
+  email: string; // Make description optional
+  phoneNumber: string;
+  type: string;
+}
+interface ConnectedNode {
+  color: string;
+  email: string;
+  id: string;
+  label: string;
+  phoneNumber: string;
+  size: number;
+  x: number;
+  y: number;
+  connectionType?: string;
 }
 
 // Component that handles graph loading and interactions
-const LoadGraph = ({filter , setHoveredNode} : {filter : InputType , setHoveredNode :  ( inp: {[key : string] : any} | null) => void }) => {
+const LoadGraph = ({
+  filter,
+  setHoveredNode,
+  connectedNodes,
+  connectNodesFn,
+  sizeOfNodes,
+  flag,
+  refreshNodes,
+  mode,
+  connectedMultipleNodes,
+  connectMultipleNodesFn,
+  setPositionToFill,
+  postionToFill,
+}: {
+  filter: InputType;
+  setHoveredNode: (inp: { [key: string]: any } | null) => void;
+  connectedNodes: { [key: string]: any };
+  connectNodesFn: React.Dispatch<
+    React.SetStateAction<{
+      [key: string]: ConnectedNode;
+    }>
+  >;
+  sizeOfNodes: number;
+  flag: boolean;
+  refreshNodes: boolean;
+  mode: string;
+  connectedMultipleNodes: { [key: string]: any };
+  connectMultipleNodesFn: React.Dispatch<
+    React.SetStateAction<{
+      [key: string]: ConnectedNode[];
+    }>
+  >;
+  setPositionToFill: React.Dispatch<React.SetStateAction<number>>;
+  postionToFill: number;
+}) => {
   const loadGraph = useLoadGraph();
   const sigma = useSigma();
   const [nodes, setNodes] = useState<Node[]>([]);
 
+  //first user will pres ctrl probabvly show the add connection by clicking two nodes activated
+  //  popup for fincal confiramtion that you want to t add connection between two nodes or not
+  // if yes then add connection between two nodes and then refresh the graph
+  // if no then remove the popup and do nothing
+  //
 
+  const size = Object.entries(connectedNodes).length;
+  const size2 = Object.entries(connectedMultipleNodes).length;
+  console.log("Size of connectedNodes:", size);
+  console.log("Size of connectedMultipleNodes:", size2);
+
+  console.log("Mode ", mode);
   const onClickNode = async (nodeId: string) => {
     console.log("clicked");
     console.log(nodeId);
     try {
-      const response = await fetch(`${connectionUrl}/api/v1/connection/${nodeId}`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      const response = await fetch(
+        `${connectionUrl}/api/v1/connection/${nodeId}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
 
-      const { data: { edges, nodes } } = await response.json();
+      const {
+        data: { edges, nodes },
+      } = await response.json();
 
-      console.log(nodes); 
-      
+      console.log("flasg", flag);
+
+      console.log("Multiple object", connectedMultipleNodes);
+      console.log("Keys", Object.keys(connectedMultipleNodes));
+      console.log(
+        "check",
+        Object.keys(connectedMultipleNodes).filter((key) => {
+          return (function (Key: string) {
+            let k = key as string;
+
+            return connectedMultipleNodes[k].some(
+              (node: any) => node.id === nodeId
+            );
+          })(key);
+        })
+      );
+
+      if (
+        flag &&
+        sizeOfNodes < 2 &&
+        !connectedNodes.hasOwnProperty(nodeId) &&
+        mode === "single"
+      ) {
+        connectNodesFn((prev) => {
+          return {
+            ...prev,
+            [nodeId]: nodes.filter((node: any) => node.id === nodeId)[0],
+          };
+        });
+        console.log("connectedNodes", connectedNodes);
+      } else if (
+        flag &&
+        !(
+          Object.keys(connectedMultipleNodes).filter((key) => {
+            return (function (Key: string) {
+              let k = key as string;
+
+              return connectedMultipleNodes[k].some(
+                (node: any) => node.id === nodeId
+              );
+            })(key);
+          }).length > 0
+        ) &&
+        mode === "multiple"
+      ) {
+        console.log("connectedMultipleNodees from inside");
+        if (connectedMultipleNodes[postionToFill.toString()].length < 2) {
+          connectMultipleNodesFn((prev) => {
+            return {
+              ...prev,
+              [postionToFill.toString()]: [
+                ...connectedMultipleNodes[postionToFill.toString()],
+                nodes.filter((node: any) => node.id === nodeId)[0],
+              ],
+            };
+          });
+
+          if (connectedMultipleNodes[postionToFill.toString()].length === 1) {
+            const res = prompt(
+              "Please enter the connection type you want to add them between these 2 nodes"
+            );
+            console.log("res", res);
+            if (res) {
+              connectedMultipleNodes[
+                postionToFill.toString()
+              ][0].connectionType = res;
+            }
+          }
+        } else {
+          connectMultipleNodesFn((prev) => {
+            return {
+              ...prev,
+              [(postionToFill + 1).toString()]: [
+                nodes.filter((node: any) => node.id === nodeId)[0],
+              ],
+            };
+          });
+          setPositionToFill((prev) => prev + 1);
+        }
+      }
+
+      console.log("connectedNodes", connectedNodes);
+      console.log("connectedMultipleNodes", connectedMultipleNodes);
+
       const graph = sigma.getGraph();
 
       // Add new nodes
       nodes.forEach((node: any) => {
-
-        console.log(node);
         if (!graph.hasNode(node.id) && node.label !== "Me") {
           graph.addNode(node.id, {
             label: node.label,
@@ -51,45 +201,47 @@ const LoadGraph = ({filter , setHoveredNode} : {filter : InputType , setHoveredN
             y: Math.random() * 10,
             size: node.size || 10,
             color: node.color || "#E57373",
-          
           });
         }
       });
 
       // Add new edges
       edges.forEach((edge: any) => {
-        const edgeExists = 
-          graph.hasEdge(edge.source, edge.target) || 
+        const edgeExists =
+          graph.hasEdge(edge.source, edge.target) ||
           graph.hasEdge(edge.target, edge.source);
-        
+
         if (!edgeExists) {
           graph.addEdge(edge.source, edge.target, {
             type: "line",
             label: edge.label,
             size: edge.size || 2,
-            color: edge.color || "#999"
+            color: edge.color || "#999",
           });
         }
       });
 
       sigma.refresh();
-      
     } catch (error) {
-      console.error('Error fetching node connections:', error);
+      console.error("Error fetching node connections:", error);
     }
   };
 
-  useEffect(() => { 
-    console.log("filter changed");
+  useEffect(() => {
+    console.log("refreshNodes", refreshNodes);
     const fetchData = async () => {
-      const response = await fetch(`${connectionUrl}/api/v1/search?name=${filter.Name}&email=${filter.Email}&phoneNumber=${filter.phoneNumber}`, {
-        headers: {
-          "Content-Type": "application/json",
-          authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      const response = await fetch(
+        `${connectionUrl}/api/v1/search?name=${filter.Name}&email=${filter.Email}&phoneNumber=${filter.phoneNumber}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
       const { data } = await response.json();
-      console.log(data);
+
+      console.log("Data from fetch", data);
       const graph = new Graph();
       setNodes(data.nodes);
       // Add nodes
@@ -113,52 +265,55 @@ const LoadGraph = ({filter , setHoveredNode} : {filter : InputType , setHoveredN
             type: "line",
             label: edge.label,
             size: edge.size || 2,
-            color: edge.color || "#999"
+            color: edge.color || "#999",
           });
         }
       });
 
       loadGraph(graph);
 
-      console.log(data.nodes)
-      console.log(data.edges);
+      console.log("Nodes");
+      console.log(data.nodes);
     };
 
     fetchData();
-
-    console.log(nodes)
-  }, [loadGraph, filter]);
+  }, [loadGraph, filter, refreshNodes]);
 
   // Add hover handlers
   useEffect(() => {
     if (!sigma) return;
-    
+
     sigma.on("clickNode", (event) => onClickNode(event.node));
 
     sigma.on("wheelNode", (event) => {
-      console.log("Zooming", event.event.x, event.event.y, event.event.preventSigmaDefault);
-    })
+      console.log(
+        "Zooming",
+        event.event.x,
+        event.event.y,
+        event.event.preventSigmaDefault
+      );
+    });
     // Add enter node (hover start) handler
-   
-    
+
     return () => {
       sigma.removeAllListeners();
     };
-  }, [sigma]);
+  }, [sigma, flag, connectedNodes, connectedMultipleNodes, mode, sizeOfNodes]);
 
   useEffect(() => {
-   
-
     sigma.on("enterNode", (event) => {
       const node = nodes.find((n: Node) => n.id === event.node);
 
-      console.log(node);
+      const obj = {
+        id: event.node,
+        Label: node ? node.label : "",
+        Description: node ? node.description : "",
+        Email: node ? node.email : "",
+        phoneNumber: node ? node.phoneNumber : "",
+        type: node ? node.type : "",
+      };
 
-      const obj= { "id": event.node  ,"Label" : node ? node.label : "" , "Description" : node? node.description : "" , "Email" : node ? node.email : "" , "phoneNumber" : node ? node.phoneNumber : ""};
-
-      console.log(obj);
       if (obj != null) {
- 
         setHoveredNode(obj);
       }
       sigma.getContainer().style.cursor = "pointer";
@@ -171,66 +326,384 @@ const LoadGraph = ({filter , setHoveredNode} : {filter : InputType , setHoveredN
       sigma.getContainer().style.cursor = "default";
     });
   }, [nodes]);
- 
 
   // Add tooltip rendering
- 
-   
 
-  return <>       </>
+  return <> </>;
 };
 
 // Main Visual component
+
+
+
 export default function Visual() {
-  const [filter, setFilter] = useState< InputType>({ Name: "", Email: "" , phoneNumber: "" });
-  const [hoveredNode, setHoveredNode] = useState<{ [key: string]: string } | null>(null);
+  const [filter, setFilter] = useState<InputType>({
+    Name: "",
+    Email: "",
+    phoneNumber: "",
+  });
+  const [hoveredNode, setHoveredNode] = useState<{
+    [key: string]: string;
+  } | null>(null);
+
+  const [keyHelper, setKeyHelper] = useState<boolean>(false);
+
+  const [refresh, setRefresh] = useState<boolean>(false);
+  const [mode, setMode] = useState<string>("single");
+  const buttoNRef = useRef<HTMLButtonElement>(null);
+  const [connectedNodes, setConnectedNodes] = useState<{
+    [key: string]: ConnectedNode;
+  }>({});
+  const [connectedMultipleNodes, setMultipleConnectedNodes] = useState<{
+    [key: string]: ConnectedNode[];
+  }>({ "0": [] });
+  const [postionToFill, setPositionToFill] = useState<number>(0);
+
+
+  function addConnectionMultiple(
+    connectedMultipleNodes: { [key: string]: ConnectedNode[] },
+    setKeyHelper: React.Dispatch<React.SetStateAction<boolean>>,
+    setRefresh: React.Dispatch<React.SetStateAction<boolean>>,
+    setMultipleConnectedNodes: React.Dispatch<React.SetStateAction<{}>>,
+    setMode: React.Dispatch<React.SetStateAction<string>>,
+    setPositionToFill: React.Dispatch<React.SetStateAction<number>>
+  ) {
+    console.log("connectedMultipleNodes clicke");
+    try {
+      Object.keys(connectedMultipleNodes).forEach((obj) =>
+        formObject.parse({
+          mainemail: connectedMultipleNodes[obj][0].email,
+          conemail: connectedMultipleNodes[obj][1].email,
+          mainphone: connectedMultipleNodes[obj][0].phoneNumber,
+          conphone: connectedMultipleNodes[obj][1].phoneNumber,
+          entityType:
+            connectedMultipleNodes[obj][0].color === "blue" ||
+            connectedMultipleNodes[obj][1].color === "blue"
+              ? "Workplace"
+              : "Normal",
+          connection: connectedMultipleNodes[obj][0].connectionType,
+          mainusername: connectedMultipleNodes[obj][0].label,
+          conusername: connectedMultipleNodes[obj][1].label,
+        })
+      );
+    } catch (error) {
+      alert(" Please select the correct ones");
+      return;
+    }
   
+    const userResponse = confirm(
+      "Do you want to add connection between these nodes?"
+    );
+    console.log("userResponse", userResponse);
+    if (userResponse) {
+      let outArr: any = Object.keys(connectedMultipleNodes).map((obj) => ({
+        mainUserEmail: connectedMultipleNodes[obj][0].email,
+        conUserEmail: connectedMultipleNodes[obj][1].email,
+        mainPhone: connectedMultipleNodes[obj][0].phoneNumber,
+        conPhone: connectedMultipleNodes[obj][1].phoneNumber,
+  
+        mainUserName: connectedMultipleNodes[obj][0].label,
+        conUserName: connectedMultipleNodes[obj][1].label,
+        connection: connectedMultipleNodes[obj][0].connectionType || "",
+  
+        entityType:
+          connectedMultipleNodes[obj][0].color === "blue" ||
+          connectedMultipleNodes[obj][1].color === "blue"
+            ? "Workplace"
+            : "Normal",
+      }));
+  
+      const connectionArr: ConnectionData[] = outArr ? outArr : [];
+  
+      const data = addConnection({ connections: connectionArr });
+  
+      setMultipleConnectedNodes({});
+      setKeyHelper(false);
+      setPositionToFill(0);
+      setMode("single");
+      setTimeout(() => {
+        setRefresh((prev) => !prev);
+      }, 1000);
+    } else return;
+  }
+
+  const onClickHandler = (connectedMultipleNodes: {
+    [key: string]: ConnectedNode[];
+  }) => {
+    addConnectionMultiple(
+      connectedMultipleNodes,
+      setKeyHelper,
+      setRefresh,
+      setMultipleConnectedNodes,
+      setMode,
+      setPositionToFill
+    );
+  };
+
+  const onDownloadClickHandler = async () => {
+
+    try{
+    const connectionStream : any= await fetch(`${connectionUrl}/api/v1/download-connections`,{
+
+      headers:{
+
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem("token")}`
+      }
+    } )
+
+    const blob= await connectionStream.blob();
+    const url= window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+
+    document.body.appendChild(a);
+    a.href= url;
+    a.download = "connection.pdf";
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  }
+  catch(error){
+    console.log("Error downloading the file", error);
+  }
+  }
+  useEffect(() => {
+    if (
+      Object.keys(connectedNodes).length === 2 &&
+      keyHelper &&
+      mode === "single"
+    ) {
+      // mainemail: connectedNodes[Object.keys(connectedNodes)[0]]?.email,
+      alert(
+        "You have selected connect  nodes by drag and drop. Please drag and drop the nodes to connect them 2 nodes."
+      );
+
+      const res = prompt(
+        "Please enter the connection type you want to add them between these 2 nodes"
+      );
+      console.log("res", res);
+      try {
+        formObject.parse({
+          mainemail: connectedNodes[Object.keys(connectedNodes)[0]].email,
+          conemail: connectedNodes[Object.keys(connectedNodes)[1]].email,
+          mainphone: connectedNodes[Object.keys(connectedNodes)[0]].phoneNumber,
+          conphone: connectedNodes[Object.keys(connectedNodes)[1]].phoneNumber,
+          entityType:
+            connectedNodes[Object.keys(connectedNodes)[0]].color === "blue" ||
+            connectedNodes[Object.keys(connectedNodes)[1]].color === "blue"
+              ? "Workplace"
+              : "Normal",
+          connection: res,
+          mainusername: connectedNodes[Object.keys(connectedNodes)[0]].label,
+          conusername: connectedNodes[Object.keys(connectedNodes)[1]].label,
+        });
+      } catch (error) {
+        alert(" Please select the correct ones");
+        return;
+      }
+
+      const userResponse = confirm(
+        "Do you want to add connection between these two nodes?"
+      );
+      console.log("userResponse", userResponse);
+      if (userResponse) {
+        const connectionArr: ConnectionData[] = [
+          {
+            mainUserEmail: connectedNodes[Object.keys(connectedNodes)[0]].email,
+            conUserEmail: connectedNodes[Object.keys(connectedNodes)[1]].email,
+            mainPhone:
+              connectedNodes[Object.keys(connectedNodes)[0]].phoneNumber,
+            conPhone:
+              connectedNodes[Object.keys(connectedNodes)[1]].phoneNumber,
+
+            mainUserName: connectedNodes[Object.keys(connectedNodes)[0]].label,
+            conUserName: connectedNodes[Object.keys(connectedNodes)[1]].label,
+            connection: res || "",
+
+            entityType:
+              connectedNodes[Object.keys(connectedNodes)[0]].color === "blue" ||
+              connectedNodes[Object.keys(connectedNodes)[1]].color === "blue"
+                ? "Workplace"
+                : "Normal",
+          },
+        ];
+
+        const data = addConnection({ connections: connectionArr });
+
+        setConnectedNodes({});
+        setKeyHelper(false);
+
+        setTimeout(() => {
+          setRefresh((prev) => !prev);
+        }, 1000);
+      } else return;
+    }
+  }, [connectedNodes]);
+
+  useEffect(() => {
+    if (keyHelper) {
+      alert(
+        `You have selected connect ${mode} node${
+          mode === "single" ? "" : "s"
+        } by drag and drop. Please drag and drop the nodes to connect`
+      );
+    }
+  }, [mode, keyHelper]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Control") {
+        setKeyHelper((prev) => !prev);
+        alert("Drag mode on!");
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    // document.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      // document.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
+
   return (
     <div className="flex flex-col w-auto ">
       <Header />
 
-     
       {localStorage.getItem("token") ? (
         <div className="flex flex-col justify-between  md:flex-row ">
-           <div className="  bg-white shadow-md z-10  ">
+          <div className="  bg-white shadow-md z-10  ">
             <Filter setFilter={setFilter} />
           </div>
-          <div className=" w-screen bg-white shadow-md flex">
+          <div className=" w-screen bg-white shadow-md flex-row">
 
-            
-            <SigmaContainer 
-              style={{ 
-                width: "100%", 
+            <div className="flex flex-row justify-between items-center p-4 w-full">
+            <div className="flex flex-col justify-top items-center p-4 w-max">
+              <p className="text-2xl font-bold text-gray-800 p-4">
+                Drag add connection mode :{" "}
+                <span>{keyHelper ? "On" : "Off"}</span>
+              </p>
+              <div className="flex gap-4 p-2 flex-row items-center justify-center">
+                
+                  <label className="flex items-center gap-1 justify-items-center">
+                    Single
+                    <input
+                      type="radio"
+                      name="selectMode"
+                      value="single"
+                      disabled={!keyHelper}
+                      checked={mode === "single"}
+                      onChange={() => {
+                        setMode("single");
+                      }}
+                    />
+                  </label>
+                  <label className="flex items-center gap-1 justify-items-center">
+                    Multiple
+                    <input
+                      type="radio"
+                      name="selectMode"
+                      value="multiple"
+                      disabled={!keyHelper}
+                      checked={mode === "multiple"}
+                      onChange={() => {
+                        setMode("multiple");
+                      }}
+                    />
+                  </label>
+                  {mode === "multiple" && keyHelper && (
+                    <button
+                    className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                      ref={buttoNRef}
+                      onClick={() => onClickHandler(connectedMultipleNodes)}
+                    >
+                    
+                      Connect{" "}
+                    </button>
+                  )}
+             
+
+             
+              </div>
+            </div>
+
+            <div>
+                <button
+                       className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                      ref={buttoNRef}
+                      onClick={() =>
+                      onDownloadClickHandler()
+                      
+                      }
+                    >
+                      Download connection pdf
+                    </button>
+                  </div>
+            </div>
+            <SigmaContainer
+              style={{
+                width: "100%",
                 height: "calc(100vh - 40px)",
               }}
-              settings={{ 
+              settings={{
                 renderEdgeLabels: true,
-                allowInvalidContainer: true
+                allowInvalidContainer: true,
               }}
-
-               className=" relative w-full h-full"
+              className=" relative w-full h-full"
             >
-                  <ControlsContainer  style={{ padding: "10px" }} position={'top-right'}>
-        <ZoomControl />
-        <FullScreenControl />
-       
-      </ControlsContainer>
-              <LoadGraph  setHoveredNode= { setHoveredNode} filter= {filter}/>
-           
+              <ControlsContainer
+                style={{ padding: "10px" }}
+                position={"top-right"}
+              >
+                <ZoomControl />
+                <FullScreenControl />
+              </ControlsContainer>
+              <LoadGraph
+                setHoveredNode={setHoveredNode}
+                filter={filter}
+                connectedNodes={connectedNodes}
+                connectNodesFn={setConnectedNodes}
+                sizeOfNodes={Object.entries(connectedNodes).length}
+                flag={keyHelper}
+                refreshNodes={refresh}
+                mode={mode}
+                connectedMultipleNodes={connectedMultipleNodes}
+                connectMultipleNodesFn={setMultipleConnectedNodes}
+                setPositionToFill={setPositionToFill}
+                postionToFill={postionToFill}
+              />
             </SigmaContainer>
-            { hoveredNode && 
+            {hoveredNode && (
               <div className="absolute top-16 right-16 p-4  shadow-md bg-gray-400 border-1">
-                <p className="text-md"> id : {hoveredNode ? hoveredNode.id : ""}</p>
-                <p className="text-md"> Label : {hoveredNode ? hoveredNode.Label : ""}</p>
-                <p className="text-md"> Description : {hoveredNode ? hoveredNode.Description : ""}</p>
-                <p className="text-md"> Email: {hoveredNode ? hoveredNode.Email : ""}</p>
-                <p className="text-md"> Phone Number: {hoveredNode ? hoveredNode.phoneNumber : ""}</p>
+                <p className="text-md">
+                  {" "}
+                  id : {hoveredNode ? hoveredNode.id : ""}
+                </p>
+                <p className="text-md">
+                  {" "}
+                  Label : {hoveredNode ? hoveredNode.Label : ""}
+                </p>
+                <p className="text-md">
+                  {" "}
+                  Description : {hoveredNode ? hoveredNode.Description : ""}
+                </p>
+                <p className="text-md">
+                  {" "}
+                  Email: {hoveredNode ? hoveredNode.Email : ""}
+                </p>
+                <p className="text-md">
+                  {" "}
+                  Phone Number: {hoveredNode ? hoveredNode.phoneNumber : ""}
+                </p>
+                <p className="text-md">
+                  {" "}
+                  Type: {hoveredNode ? hoveredNode.type : ""}
+                </p>
               </div>
-}
-          
+            )}
           </div>
-
-       
         </div>
       ) : (
         <Wrapper />
@@ -238,342 +711,3 @@ export default function Visual() {
     </div>
   );
 }
-
-// export default function Visual() {
-//   const graphRef = useRef<HTMLDivElement>(null);
-//   const [graphData, setGraphData] = useState<GraphData>();
-
-//   const [sigmaState, setSigmaState] = useState<any>();
-//   const [filter, setFilter] = useState< { Name: string, Email: string}>({ Name: "", Email: "" });
-  
-//   // async function onclickNodeHandler(id: string) {
-//   //   try {
-//   //     const response = await fetch(`http://localhost:3000/api/v1/connection/${id}`, {
-//   //       headers: {
-//   //         "Content-Type": "application/json",
-//   //         Authorization: `Bearer ${localStorage.getItem("token")}`,
-//   //       },
-//   //     });
-
-//   //     if (!response.ok) {
-//   //       throw new Error('Failed to fetch connections');
-//   //     }
-
-//   //     const { data: { edges, nodes } } = await response.json();
-//   //     console.log(edges);
-//   //     if (sigmaState) {
-//   //       const graph = sigmaState.getGraph();
-        
-//   //       // Add new nodes
-//   //       nodes.forEach((node: any) => {
-//   //         if (!graph.hasNode(node.id) && node.label !== "Me") {
-//   //           graph.addNode(node.id, {
-//   //             label: node.label,
-//   //             x: Math.random() * 10,
-//   //             y: Math.random() * 10,
-//   //             size: node.size || 10,
-//   //             color: node.color || "#E57373",
-//   //             shape: "circle",
-//   //           });
-//   //         }
-//   //       });
-
-//   //       // Add new edges
-//   //       edges.forEach((edge: any) => {
-//   //         // Check both directions for the edge
-//   //         const edgeExists = 
-//   //           graph.hasEdge(edge.source, edge.target) || 
-//   //           graph.hasEdge(edge.target, edge.source);
-          
-//   //         if (!edgeExists) {
-//   //           graph.addEdge(edge.source, edge.target, {
-//   //             type: "line",
-//   //             label: edge.label,
-//   //             size: edge.size || 2,
-//   //             color: edge.color || "#999"
-//   //           });
-//   //         }
-//   //       });
-
- 
-
-//   //     }
-
-
-//   //   } catch (error) {
-//   //     console.error('Error fetching node connections:', error);
-//   //   }
-//   // }
-
-
-//   // async function onclickNodeHandler(id: string) {
-//   //   console.log(id);
-//   //   try {
-//   //     const response = await fetch(`${connectionUrl}/api/v1/connection/${id}`, {
-//   //       headers: {
-//   //         "Content-Type": "application/json",
-//   //         Authorization: `Bearer ${localStorage.getItem("token")}`,
-//   //       },
-//   //     });
-
-//   //     if (!response.ok) {
-//   //       throw new Error('Failed to fetch connections');
-//   //     }
-
-//   //     const { data: { edges, nodes } } = await response.json();
-
-//   //     setGraphData((prevData: GraphData | undefined) => {
-//   //       if (!prevData) {
-//   //         return {
-//   //           edges: edges,
-//   //           nodes: nodes
-//   //         };
-//   //       }
-
-//   //       // Create Sets for faster lookup
-//   //       const existingEdgeSet = new Set(
-//   //         prevData.edges.map((e: any) => `${e.source}-${e.target}`)
-//   //       );
-
-//   //       const existingNodeSet = new Set(
-//   //         prevData.nodes.map((n: any) => n.id)
-//   //       );
-
-//   //       // Filter new edges and nodes
-//   //       const newEdges = edges.filter((edge: any) => {
-//   //         const forwardKey = `${edge.source}-${edge.target}`;
-//   //         const reverseKey = `${edge.target}-${edge.source}`;
-//   //         return !existingEdgeSet.has(forwardKey) && !existingEdgeSet.has(reverseKey);
-//   //       });
-
-//   //       const newNodes = nodes.filter((node: any) => 
-//   //         node.label !== "Me" && !existingNodeSet.has(node.id)
-//   //       );
-
-//   //       return {
-//   //         edges: [...prevData.edges, ...newEdges],
-//   //         nodes: [...prevData.nodes, ...newNodes]
-//   //       };
-//   //     });
-
-      
-
-//   //   } catch (error) {
-//   //     console.error('Error fetching node connections:', error);
-//   //   }
-//   // }
-
-//   async function onclickNodeHandler(id: string) {
-//     console.log(id);
-//     try {
-//       const response = await fetch(`${connectionUrl}/api/v1/connection/${id}`, {
-//         headers: {
-//           "Content-Type": "application/json",
-//           Authorization: `Bearer ${localStorage.getItem("token")}`,
-//         },
-//       });
-
-      
-      
-//       console.log(response);
-
-//       const { data: { edges, nodes } } = await response.json();
-
-//       if (edges.length > 0 && nodes.length > 0) {
-//         let graph = sigmaState.getGraph();
-//         console.log(graph);
-//         // Add new nodes
-//         nodes.forEach((node: any) => {
-//           if (!graph.hasNode(node.id) && node.label !== "Me") {
-//             graph.addNode(node.id, {
-//               label: node.label,
-//               x: Math.random() * 10,
-//               y: Math.random() * 10,
-//               size: node.size || 10,
-//               color: node.color || "#E57373",
-             
-//             });
-//           }
-//         });
-
-//         // Add new edges
-//         edges.forEach((edge: any) => {
-//           // Check both directions for the edge
-//           const edgeExists = 
-//             graph.hasEdge(edge.source, edge.target) || 
-//             graph.hasEdge(edge.target, edge.source);
-          
-//           if (!edgeExists) {
-//             graph.addEdge(edge.source, edge.target, {
-//               type: "line",
-//               label: edge.label,
-//               size: edge.size || 2,
-//               color: edge.color || "#999"
-//             });
-//           }
-//         });
-        
-//         graph = sigmaState.getGraph();
-//       console.log(graph);
-//       console.log(sigmaState);
-//       sigmaState.refresh();
-//         // Refresh the sigma instance to show new nodes/edges
-      
-//       }
-   
-//     } catch (error) {
-//       console.error('Error fetching node connections:', error);
-//     }
-//   }
-
-
-
-//     async function fetchData() {
-//       console.log(localStorage.getItem("token"));
-//         const response = await fetch(`${connectionUrl}/api/v1/search?name=` + filter.Name + "&email=" + filter.Email, {
-//         headers: {
-//           "Content-Type": "application/json",
-//           authorization: `Bearer ${localStorage.getItem("token")}`,
-//         },
-//       });
-//       const data = await response.json();
-//       console.log(data.data);
-//       setGraphData(data.data);
-//     }
-  
-
-  
-//   useEffect(() => {
-//     async function fetchData() {
-//       console.log(localStorage.getItem("token"));
-//           const response = await fetch(`${connectionUrl}/api/v1/connections`, {
-//         headers: {
-//           "Content-Type": "application/json",
-//           authorization: `Bearer ${localStorage.getItem("token")}`,
-//         },
-//       });
-//       const data = await response.json();
-      
-//       setGraphData(data.data);
-//     }
-//     fetchData();
-//   }, []);
-
-//   useEffect(() => {
-//     return () => {
-//       if (sigmaState) {
-//         setSigmaState(null);
-        
-//         sigmaState.kill();
-        
-//       }
-//     };
-//   }, []);
-
-//   useEffect(() => {
-//     if (!graphData || !graphRef.current) return;
-
-//     try {
-//       const graph = new Graph();
-
-//       // Add nodes
-//       graphData.nodes.forEach((node: any) => {
-//         if (!graph.hasNode(node.id)) {
-//           graph.addNode(node.id, {
-//             label: node.label,
-//             x: Math.random() * 10,
-//             y: Math.random() * 10,
-//             size: node.size || 10,
-//             color: node.color || "#E57373",
-     
-//           });
-//         }
-//       });
-
-//       // Add edges
-//       graphData.edges.forEach((edge: any) => {
-//         if (!graph.hasEdge(edge.source, edge.target)) {
-//           graph.addEdge(edge.source, edge.target, {
-//             type: "line",
-//             label: edge.label,
-//             size: edge.size || 2,
-//             color: edge.color || "#999"
-//           });
-//         }
-//       });
-
-//       const sigmaInstance = new Sigma(graph, graphRef.current, {
-//         renderEdgeLabels: true,
-//       });
-
-//       setSigmaState(sigmaInstance);
-
-//       // Event listeners
-//       sigmaInstance.on("clickNode",  (event: any) => {
-//         const clickedNodeId = event?.node;
-//         if (clickedNodeId && sigmaInstance) {
-//          onclickNodeHandler(clickedNodeId);
-//         }
-//      sigmaInstance.refresh();
-//       });
-      
-//       // sigmaInstance.on("enterNode", (event: any) => {
-//       //   console.log("enterNode event triggered:", event);
-//       //   const hoveredNodeId = event?.node;
-//       //   if (hoveredNodeId && sigmaInstance) {
-//       //     console.log("hoveredNodeId:", hoveredNodeId);
-//       //     setHoveredNode(hoveredNodeId);
-//       //   }
-//       //   sigmaInstance.refresh();
-//       // });
-
-          
-//       // sigmaInstance.on("leaveNode", (event: any) => {
-//       //   console.log("leaving node event triggered:", event);
-//       //   const hoveredNodeId = event?.node;
-//       //   if (hoveredNodeId && sigmaInstance) {
-//       //     console.log("hoveredNodeId:", hoveredNodeId);
-//       //     setHoveredNode(null);
-//       //   }
-//       //   sigmaInstance.refresh();
-//       // });
-
-    
-      
-//       return () => {
-//         console.log("killing sigma instance");
-//         sigmaInstance.kill();
-//       };
-//     } catch (error) {
-//       console.error("Error creating graph:", error);
-//     }
-//   }, [graphData]);
-
- 
-
-//   useEffect(() => {
-//     fetchData();
-//   }, [filter]);
-
-//   return (
-//     <div className="flex flex-col min-h-screen">
-//       <Header />
-//       {localStorage.getItem("token") ? (
-//         <div className="flex flex-col md:flex-row flex-1">
-//           <div className="w-full md:w-64 lg:w-72 bg-white shadow-md z-10">
-//             <Filter setFilter={setFilter} />
-//           </div>
-          
-//           <div className="flex-1 relative bg-gray-100">
-//             <div 
-//               ref={graphRef} 
-//               className="w-full h-[calc(100vh-64px)] md:h-screen"
-//             />
-//           </div>
-//         </div>
-//       ) : (
-//         <Wrapper />
-//       )}
-//     </div>
-//   );
-// }

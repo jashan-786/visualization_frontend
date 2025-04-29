@@ -21,7 +21,7 @@ function debounce<T extends (...args: any[]) => void>(
   };
 }
 
-interface ConnectionData {
+export interface ConnectionData {
   mainPhone: string;
   mainUserEmail: string;
   mainUserName: string;
@@ -29,11 +29,13 @@ interface ConnectionData {
   conUserEmail: string;
   conUserName: string;
   connection: string;
+  entityType: string;
+  
 }
 
 
 
-const formObject = z.object({
+export const formObject = z.object({
 
 mainemail: z.string().email("Invalid email format"),
 conemail: z.string().email("Invalid email format"),
@@ -45,6 +47,32 @@ conemail: z.string().email("Invalid email format"),
   conusername: z.string().min(1, "Username is required"),
 });
 
+ export  const addConnection = async (data: { connections: ConnectionData[] }) => {
+
+
+    console.log(data);
+    const response = await fetch(`${connectionUrl}/api/v1/addConnection`, {
+      method: "POST",
+      body: JSON.stringify(data),
+      headers: {
+        "Content-Type": "application/json",
+        authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+
+    if (!response.ok) {
+      alert("Failed to add connection");
+    } else {
+      const data = await response.json();
+      if (data.present) {
+        return data;
+        alert("Connection already exists");
+      } else {
+        alert("Connection added successfully");
+      }
+    }
+  };
+  
 
 export const AddConnection = () => {
   const navigate = useNavigate();
@@ -102,31 +130,7 @@ export const AddConnection = () => {
     console.log(users2);
   }, 1000);
 
-  const addConnection = async (data: { connections: ConnectionData[] }) => {
 
-
-    console.log(data);
-    const response = await fetch(`${connectionUrl}/api/v1/addConnection`, {
-      method: "POST",
-      body: JSON.stringify(data),
-      headers: {
-        "Content-Type": "application/json",
-        authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    });
-
-    if (!response.ok) {
-      alert("Failed to add connection");
-    } else {
-      const data = await response.json();
-      if (data.present) {
-        alert("Connection already exists");
-      } else {
-        alert("Connection added successfully");
-      }
-    }
-  };
-  
   
   const handleAddConnection = () => {
 
@@ -172,6 +176,7 @@ export const AddConnection = () => {
       conUserName: conUserName.current ? conUserName.current.value : "",
       connection: connection.current ? connection.current.value : "",
       entityType: connectionType,
+      
     });
   
     console.log(Connections);
