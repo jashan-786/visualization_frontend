@@ -1,4 +1,4 @@
-import { use, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Graph from "graphology";
 import {
   ControlsContainer,
@@ -13,7 +13,6 @@ import Header from "./components/Header";
 import Filter, { InputType } from "./components/Filter";
 import Wrapper from "./components/Wrapper";
 import { connectionUrl } from "./utils/connectionUrl";
-import { set, string } from "zod";
 import { addConnection, ConnectionData, formObject } from "./AddConnection";
 
 interface Node {
@@ -113,13 +112,13 @@ const LoadGraph = ({
       console.log(
         "check",
         Object.keys(connectedMultipleNodes).filter((key) => {
-          return (function (Key: string) {
+          return (function () {
             let k = key as string;
 
             return connectedMultipleNodes[k].some(
               (node: any) => node.id === nodeId
             );
-          })(key);
+          })();
         })
       );
 
@@ -140,13 +139,13 @@ const LoadGraph = ({
         flag &&
         !(
           Object.keys(connectedMultipleNodes).filter((key) => {
-            return (function (Key: string) {
+            return (function () {
               let k = key as string;
 
               return connectedMultipleNodes[k].some(
                 (node: any) => node.id === nodeId
               );
-            })(key);
+            })();
           }).length > 0
         ) &&
         mode === "multiple"
@@ -415,7 +414,7 @@ export default function Visual() {
   
       const connectionArr: ConnectionData[] = outArr ? outArr : [];
   
-      const data = addConnection({ connections: connectionArr });
+       addConnection({ connections: connectionArr });
   
       setMultipleConnectedNodes({});
       setKeyHelper(false);
@@ -529,7 +528,7 @@ export default function Visual() {
           },
         ];
 
-        const data = addConnection({ connections: connectionArr });
+        addConnection({ connections: connectionArr });
 
         setConnectedNodes({});
         setKeyHelper(false);
