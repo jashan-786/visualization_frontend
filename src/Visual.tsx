@@ -346,10 +346,14 @@ export default function Visual() {
   } | null>(null);
 
   const [keyHelper, setKeyHelper] = useState<boolean>(false);
-
   const [refresh, setRefresh] = useState<boolean>(false);
   const [mode, setMode] = useState<string>("single");
+  // Reference to the button for connecting nodes
+  // This is used to programmatically click the button when needed
+  // this used to ref for downliade pdf file buttons
   const buttoNRef = useRef<HTMLButtonElement>(null);
+
+  // Foloowing 2 are used acording to the mode value selceted above
   const [connectedNodes, setConnectedNodes] = useState<{
     [key: string]: ConnectedNode;
   }>({});
@@ -467,6 +471,10 @@ export default function Visual() {
     console.log("Error downloading the file", error);
   }
   }
+
+
+  // Effect to handle connection between nodes
+  // This effect will run when two nodes are connected in single mode
   useEffect(() => {
     if (
       Object.keys(connectedNodes).length === 2 &&
@@ -474,9 +482,9 @@ export default function Visual() {
       mode === "single"
     ) {
       // mainemail: connectedNodes[Object.keys(connectedNodes)[0]]?.email,
-      alert(
-        "You have selected connect  nodes by drag and drop. Please drag and drop the nodes to connect them 2 nodes."
-      );
+      // alert(
+      //   "You have selected connect  nodes by drag and drop. Please select the 2 nodes to connect"
+      // );
 
       const res = prompt(
         "Please enter the connection type you want to add them between these 2 nodes"
@@ -545,17 +553,35 @@ export default function Visual() {
       alert(
         `You have selected connect ${mode} node${
           mode === "single" ? "" : "s"
-        } by drag and drop. Please drag and drop the nodes to connect`
+        } by drag and drop. Please select the nodes to connect`
       );
     }
   }, [mode, keyHelper]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Control") {
-        setKeyHelper((prev) => !prev);
-        alert("Drag mode on!");
-      }
+      console.log("Key pressed:", `${keyHelper}`);
+
+       if (e.key === "Control") {
+      setKeyHelper((prev) => {
+        const newState = !prev;
+        alert(`Drag mode ${newState ? "on" : "off"}!`);
+
+        if(!newState){
+          setConnectedNodes({});
+          setMultipleConnectedNodes({ "0": [] });
+          setPositionToFill(0);
+          setMode("single");
+
+        }
+        return newState;
+      });
+    }
+
+
+      
+ 
+          
     };
 
     document.addEventListener("keydown", handleKeyDown);
