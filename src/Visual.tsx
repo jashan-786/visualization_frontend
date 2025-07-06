@@ -610,6 +610,9 @@ export default function Visual() {
                 Drag add connection mode :{" "}
                 <span>{keyHelper ? "On" : "Off"}</span>
               </p>
+              <p>
+                Toggle the drag mode by pressing the <strong>Ctrl</strong> key.
+              </p>
               <div className="flex gap-4 p-2 flex-row items-center justify-center">
                 
                   <label className="flex items-center gap-1 justify-items-center">
