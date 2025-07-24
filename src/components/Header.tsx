@@ -5,7 +5,7 @@ import { FaEye } from "react-icons/fa";
 import { onDownloadClickHandler } from "../Visual";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import LanguageSwitcher from "./LanSwitch";
+import { FaDownload } from "react-icons/fa";
 import { changeLanguage } from "i18next";
 
 export default function Header() {
@@ -69,12 +69,17 @@ export default function Header() {
               className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
               onClick={() => onDownloadClickHandler(selectedFormat)}
             >
-              {t("Download connection")} {selectedFormat.toUpperCase()}
+              <FaDownload className="inline" />
+      
             </button>
           </div>
         )}
 
-        <select onChange={(e) => changeLanguage(e.target.value)}>
+        <select
+       
+          className="text-sm sm:text-base bg-gray-200 border border-gray-300 rounded-lg p-2"
+          onChange={(e) => changeLanguage(e.target.value)}
+        >
           <option value="">{t("Select Language")}</option>
           <option value="en">{t("English")}</option>
           <option value="fr">{t("French")}</option>
