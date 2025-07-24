@@ -7,9 +7,13 @@ import { Signup } from "./Signup";
 import { AddConnection } from "./AddConnection";
 import UpdateConnection from "./UpdateConnection";
 import AddUser from "./AddUser";
+import { I18nextProvider } from "react-i18next";
+import i18n from "./i18n";
 
 function App() {
   return (
+    <I18nextProvider i18n={i18n}>
+
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Landing />} />  
@@ -21,6 +25,8 @@ function App() {
         <Route path="/adduser" element={<AddUser />} />
       </Routes>
     </BrowserRouter>
+
+    </I18nextProvider>
   );
 }
 

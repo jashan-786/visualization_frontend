@@ -15,6 +15,8 @@ import Wrapper from "./components/Wrapper";
 import { connectionUrl } from "./utils/connectionUrl";
 import { addConnection, ConnectionData, formObject } from "./AddConnection";
 
+import { useTranslation } from "react-i18next";
+
 interface Node {
   id: string;
   label: string;
@@ -34,7 +36,58 @@ interface ConnectedNode {
   y: number;
   connectionType?: string;
 }
+export const onDownloadClickHandler = async (downloadType: string) => {
+  try {
+    let connectionStream: any;
+    if (downloadType === "json") {
+      connectionStream = await fetch(
+        `${connectionUrl}/api/v1/connections-json`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+    } else {
+      connectionStream = await fetch(
+        `${connectionUrl}/api/v1/download-connections`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+    }
 
+    let blob;
+
+    if (downloadType === "json") {
+      // Replace this with your actual check
+      const jsonString = JSON.stringify(await connectionStream.json(), null, 2); // Pretty print
+      blob = new Blob([jsonString], { type: "application/json" });
+    } else {
+      blob = await connectionStream.blob(); // Assuming PDF
+    }
+
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    document.body.appendChild(a);
+    a.href = url;
+
+    // Change filename based on file type
+    a.download =
+      downloadType === "json" ? "connections.json" : "connections.pdf";
+
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.log("Error downloading the file", error);
+  }
+};
 // Component that handles graph loading and interactions
 const LoadGraph = ({
   filter,
@@ -333,9 +386,9 @@ const LoadGraph = ({
 
 // Main Visual component
 
-
-
 export default function Visual() {
+  const { t } = useTranslation();
+
   const [filter, setFilter] = useState<InputType>({
     Name: "",
     Email: "",
@@ -361,7 +414,6 @@ export default function Visual() {
     [key: string]: ConnectedNode[];
   }>({ "0": [] });
   const [postionToFill, setPositionToFill] = useState<number>(0);
-
 
   function addConnectionMultiple(
     connectedMultipleNodes: { [key: string]: ConnectedNode[] },
@@ -393,7 +445,7 @@ export default function Visual() {
       alert(" Please select the correct ones");
       return;
     }
-  
+
     const userResponse = confirm(
       "Do you want to add connection between these nodes?"
     );
@@ -404,22 +456,22 @@ export default function Visual() {
         conUserEmail: connectedMultipleNodes[obj][1].email,
         mainPhone: connectedMultipleNodes[obj][0].phoneNumber,
         conPhone: connectedMultipleNodes[obj][1].phoneNumber,
-  
+
         mainUserName: connectedMultipleNodes[obj][0].label,
         conUserName: connectedMultipleNodes[obj][1].label,
         connection: connectedMultipleNodes[obj][0].connectionType || "",
-  
+
         entityType:
           connectedMultipleNodes[obj][0].color === "blue" ||
           connectedMultipleNodes[obj][1].color === "blue"
             ? "Workplace"
             : "Normal",
       }));
-  
+
       const connectionArr: ConnectionData[] = outArr ? outArr : [];
-  
-       addConnection({ connections: connectionArr });
-  
+
+      addConnection({ connections: connectionArr });
+
       setMultipleConnectedNodes({});
       setKeyHelper(false);
       setPositionToFill(0);
@@ -442,36 +494,6 @@ export default function Visual() {
       setPositionToFill
     );
   };
-
-  const onDownloadClickHandler = async () => {
-
-    try{
-    const connectionStream : any= await fetch(`${connectionUrl}/api/v1/download-connections`,{
-
-      headers:{
-
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${localStorage.getItem("token")}`
-      }
-    } )
-
-    const blob= await connectionStream.blob();
-    const url= window.URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-
-    document.body.appendChild(a);
-    a.href= url;
-    a.download = "connection.pdf";
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
-  }
-  catch(error){
-    console.log("Error downloading the file", error);
-  }
-  }
-
 
   // Effect to handle connection between nodes
   // This effect will run when two nodes are connected in single mode
@@ -559,39 +581,36 @@ export default function Visual() {
   }, [mode, keyHelper]);
 
   useEffect(() => {
+
+    
+    if(localStorage.getItem("token")) {
     const handleKeyDown = (e: KeyboardEvent) => {
       console.log("Key pressed:", `${keyHelper}`);
 
-       if (e.key === "Control") {
-      setKeyHelper((prev) => {
-        const newState = !prev;
-        alert(`Drag mode ${newState ? "on" : "off"}!`);
+      if (e.key === "Control") {
+        setKeyHelper((prev) => {
+          const newState = !prev;
+          alert(`Drag mode ${newState ? "on" : "off"}!`);
 
-        if(!newState){
-          setConnectedNodes({});
-          setMultipleConnectedNodes({ "0": [] });
-          setPositionToFill(0);
-          setMode("single");
-
-        }
-        return newState;
-      });
-    }
-
-
-      
- 
-          
+          if (!newState) {
+            setConnectedNodes({});
+            setMultipleConnectedNodes({ "0": [] });
+            setPositionToFill(0);
+            setMode("single");
+          }
+          return newState;
+        });
+      }
     };
 
     document.addEventListener("keydown", handleKeyDown);
-    // document.addEventListener("keyup", handleKeyUp);
+
 
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
-      // document.removeEventListener("keyup", handleKeyUp);
+     
     };
-  }, []);
+  }}, []);
 
   return (
     <div className="flex flex-col w-auto ">
@@ -603,20 +622,19 @@ export default function Visual() {
             <Filter setFilter={setFilter} />
           </div>
           <div className=" w-screen bg-white shadow-md flex-row">
-
             <div className="flex flex-row justify-between items-center p-4 w-full">
-            <div className="flex flex-col justify-top items-center p-4 w-max">
-              <p className="text-2xl font-bold text-gray-800 p-4">
-                Drag add connection mode :{" "}
-                <span>{keyHelper ? "On" : "Off"}</span>
-              </p>
-              <p>
-                Toggle the drag mode by pressing the <strong>Ctrl</strong> key.
-              </p>
-              <div className="flex gap-4 p-2 flex-row items-center justify-center">
-                
+              <div className="flex flex-col justify-top items-center p-4 w-max">
+                <p className="text-2xl font-bold text-gray-800 p-4">
+                  {t("Drag add connection mode :")}{" "}
+                  <span>{keyHelper ? t("On") : t("Off")}</span>
+                </p>
+                <p>
+                  {t("Toggle the drag mode by pressing the")} <strong> {t("Ctrl")}</strong>{" "}
+                  {t("key.")}
+                </p>
+                <div className="flex gap-4 p-2 flex-row items-center justify-center">
                   <label className="flex items-center gap-1 justify-items-center">
-                    Single
+                    {t("Single")}
                     <input
                       type="radio"
                       name="selectMode"
@@ -629,7 +647,7 @@ export default function Visual() {
                     />
                   </label>
                   <label className="flex items-center gap-1 justify-items-center">
-                    Multiple
+                    {t("Multiple")}
                     <input
                       type="radio"
                       name="selectMode"
@@ -643,32 +661,14 @@ export default function Visual() {
                   </label>
                   {mode === "multiple" && keyHelper && (
                     <button
-                    className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                      ref={buttoNRef}
+                      className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                       onClick={() => onClickHandler(connectedMultipleNodes)}
                     >
-                    
-                      Connect{" "}
+                      {t("Connect")}
                     </button>
                   )}
-             
-
-             
+                </div>
               </div>
-            </div>
-
-            <div>
-                <button
-                       className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                      ref={buttoNRef}
-                      onClick={() =>
-                      onDownloadClickHandler()
-                      
-                      }
-                    >
-                      Download connection pdf
-                    </button>
-                  </div>
             </div>
             <SigmaContainer
               style={{

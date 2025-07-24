@@ -1,18 +1,19 @@
 import Footer from "./components/Footer";
 import Header from "./components/Header";
-
+import { useTranslation } from "react-i18next";
 export const Landing = () => {
+  const { t } = useTranslation();
+
   return (
     <div id="webcrumbs">
       <Header />
       <main className="p-4 sm:p-6 md:p-10">
         <section className="text-center mb-8 md:mb-12">
           <h2 className="text-2xl md:text-3xl font-bold mb-2 md:mb-3 text-neutral-950">
-            Explore Connections Like Never Before
+           { t("Explore Connections Like Never Before") }
           </h2>
           <p className="text-neutral-600 text-sm  p-4">
-            Our platform enables you to visualize and make relationships in a
-            dynamic way.
+            { t("Our platform enables you to visualize and make relationships in a dynamic way.") }
           </p>
         </section>
         <section className="flex justify-center mb-8 md:mb-12">
@@ -31,28 +32,28 @@ export const Landing = () => {
           <div className="p-6 bg-neutral-50 rounded-md text-center shadow-sm">
             <i className="fa-solid fa-sitemap text-primary-500 text-4xl mb-4"></i>
             <h3 className="text-lg font-bold mb-2 text-neutral-950">
-              Dynamic Graphs
+              { t("Dynamic Graphs") }
             </h3>
             <p className="text-neutral-600">
-              Create and explore relationships tailored to your data needs.
+              { t("Create and explore relationships tailored to your data needs.") }
             </p>
           </div>
           <div className="p-6 bg-neutral-50 rounded-md text-center shadow-sm">
             <i className="fa-solid fa-chart-line text-primary-500 text-4xl mb-4"></i>
             <h3 className="text-lg font-bold mb-2 text-neutral-950">
-              Analytical Insights
+              { t("Analytical Insights") }
             </h3>
             <p className="text-neutral-600">
-              Leverage actionable insights with our detailed analytics.
+              { t("Leverage actionable insights with our detailed analytics.") }
             </p>
           </div>
           <div className="p-6 bg-neutral-50 rounded-md text-center shadow-sm">
             <i className="fa-solid fa-lock text-primary-500 text-4xl mb-4"></i>
             <h3 className="text-lg font-bold mb-2 text-neutral-950">
-              Secure Tools
+              { t("Secure Tools") }
             </h3>
             <p className="text-neutral-600">
-              Your data is safeguarded with industry-standard security measures.
+              { t("Your data is safeguarded with industry-standard security measures.") }
             </p>
           </div>
         </section>

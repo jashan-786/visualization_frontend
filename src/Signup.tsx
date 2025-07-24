@@ -7,7 +7,9 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Header from "./components/Header";
 import { connectionUrl } from "./utils/connectionUrl";
+import { useTranslation } from "react-i18next";
 export const Signup = () => {
+  const { t } = useTranslation();
   const username = useRef<HTMLInputElement>(null);
   const email = useRef<HTMLInputElement>(null);
   const password = useRef<HTMLInputElement>(null);
@@ -51,7 +53,7 @@ export const Signup = () => {
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-3 sm:p-4 md:p-6">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-[320px] sm:max-w-[380px] md:max-w-md p-4 sm:p-6 md:p-8 transform hover:scale-105 transition-transform duration-300">
             <div className="flex justify-between items-center mb-6 sm:mb-8">
-              <h1 className="text-2xl sm:text-3xl font-bold">Sign Up</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold">{t("Sign Up")}</h1>
               <span className="material-symbols-outlined text-1xl cursor-pointer hover:rotate-180 transition-transform duration-300">
                 <IoClose onClick={() => navigate("/")} />
               </span>
@@ -62,7 +64,7 @@ export const Signup = () => {
                 <input
                   ref={username}
                   type="text"
-                  placeholder="User Name"
+                  placeholder={t("User Name")}
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all duration-300"
                 />
                 <span className="material-symbols-outlined absolute right-3 top-2 sm:top-3">
@@ -74,7 +76,7 @@ export const Signup = () => {
                 <input
                   ref={email}
                   type="email"
-                  placeholder="Email Address"
+                  placeholder={t("Email Address")}
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all duration-300"
                 />
                 <span className="material-symbols-outlined absolute right-3 top-2 sm:top-3">
@@ -86,7 +88,7 @@ export const Signup = () => {
                 <input
                   ref={password}
                   type="password"
-                  placeholder="Password"
+                  placeholder={t("Password")}
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all duration-300"
                 />
                 <span className="material-symbols-outlined absolute right-3 top-2 sm:top-3">
@@ -98,19 +100,19 @@ export const Signup = () => {
                 onClick={onClickHandler}
                 className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-2 sm:py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300"
               >
-                Create Account
+                {t("Create Account")}
               </button>
 
               <div className="relative flex items-center gap-3 sm:gap-4 my-6 sm:my-8">
                 <div className="flex-grow h-px bg-gray-300" />
-                <span className="text-xs sm:text-sm text-gray-500">or continue with</span>
+                <span className="text-xs sm:text-sm text-gray-500">{t("or continue with")}</span>
                 <div className="flex-grow h-px bg-gray-300" />
               </div>
 
               <p className="text-center text-xs sm:text-sm">
-                Already have an account?
+                {t("Already have an account?")}
                 <a onClick={() => navigate("/signin")} className="font-semibold ml-1 hover:underline hover:cursor-pointer">
-                  Sign in
+                  {t("Sign in")}
                 </a>
               </p>
             </div>
