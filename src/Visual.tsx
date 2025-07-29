@@ -404,8 +404,7 @@ export default function Visual() {
   // Reference to the button for connecting nodes
   // This is used to programmatically click the button when needed
   // this used to ref for downliade pdf file buttons
-  const buttoNRef = useRef<HTMLButtonElement>(null);
-
+  
   // Foloowing 2 are used acording to the mode value selceted above
   const [connectedNodes, setConnectedNodes] = useState<{
     [key: string]: ConnectedNode;

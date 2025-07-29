@@ -3,7 +3,7 @@ import { CiMail } from "react-icons/ci";
 import { IoIosClose } from "react-icons/io";
 import Header from "./components/Header";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import {  useRef, useState } from "react";
 import Wrapper from "./components/Wrapper";
 import { connectionUrl } from "./utils/connectionUrl";
 import { z } from "zod";
@@ -105,10 +105,7 @@ export const AddConnection = () => {
     email: false,
     username: false,
   });
-  const [selectedOptions, setSelectedOptions] = useState<boolean[]>([
-    false,
-    false,
-  ]);
+ 
   const [connectionType, setConnectionType] = useState<string>("Normal");
 
   const [errors, setErrors] = useState<{ [Key: string]: string }>({});
