@@ -9,11 +9,11 @@ import { connectionUrl } from "./utils/connectionUrl";
 import {z} from "zod";
 import { useTranslation } from "react-i18next";
 const formObject = z.object({
-  userName: z.string().min(1, "Username is required"), // Added min(1) to ensure it's not empty
-  email: z.string().email("Invalid email format"),
+  userName: z.string().min(1, "Username is required").optional(), // Added min(1) to ensure it's not empty
+  email: z.string().email("Invalid email format").optional(),
   phone: z.string().regex(/[0-9]{3}-[0-9]{3}-[0-9]{4}/, "Invalid phone format"),
   entityType: z.string(),
-  description: z.string().min(1, "Description is required"),
+  description: z.string().min(1, "Description is required").optional(),
 });
 
 export default function AddUser() {
@@ -30,14 +30,14 @@ export default function AddUser() {
   const [error , setErros]= useState<{ [Key: string] : string}>({});
 
   const onClickHandler = async () => {
-    const email = emailRef.current?.value;
-    const username = usernameRef.current?.value;
-    const description = descriptionRef.current?.value;
+    const email = emailRef.current?.value || "";
+    const username = usernameRef.current?.value || "";
+    const description = descriptionRef.current?.value || "";
     const phone = phoneRef.current?.value;
 
     try {
       // First, validate input using Zod
-      const res = formObject.parse({
+      const res = formObject.safeParse({
         userName: username,
         email: email,
         phone: phone,
@@ -164,7 +164,7 @@ export default function AddUser() {
                     <input
                       type="email"
                       ref={emailRef}
-                      placeholder={t("New Email Address (required)")}
+                      placeholder={t("New Email Address")}
                       className="w-full px-3 md:px-4 py-2 md:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300"
                     />
                     <span className="material-symbols-outlined absolute right-3 top-3">
@@ -177,7 +177,7 @@ export default function AddUser() {
                     <input
                       type="text"
                       ref={usernameRef}
-                      placeholder={t("New Username (required)")}
+                      placeholder={t("New Username")}
                       className="w-full px-3 md:px-4 py-2 md:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300"
                     />
                     <span className="material-symbols-outlined absolute right-3 top-3">
