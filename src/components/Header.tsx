@@ -53,6 +53,7 @@ export default function Header() {
           <IoIosAdd className="text-1xl" />
         </a>
 
+{ localStorage.getItem("token") && (
         <select
           id="dropdown"
           value={selectedFormat}
@@ -63,6 +64,7 @@ export default function Header() {
           <option value="pdf">{t("PDF")}</option>
           <option value="json">{t("JSON")}</option>
         </select>
+      )}
         {selectedFormat != "dwn" && (
           <div>
             <button
