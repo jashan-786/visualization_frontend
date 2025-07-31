@@ -6,7 +6,7 @@ export default function Footer() {
     <footer className="p-4 sm:p-6 bg-neutral-200">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0">
         <p className="text-neutral-600 text-center sm:text-left text-sm sm:text-base">
-         &copy; { t("2025 Connection Visualizer. All rights reserved.")}
+         &copy; { t("2025 Connection Visualizer. All rights reserved.") }
         </p>
         <div className="flex gap-4">
           <a

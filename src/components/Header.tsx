@@ -53,7 +53,7 @@ export default function Header() {
           <IoIosAdd className="text-1xl" />
         </a>
 
-{ localStorage.getItem("token") && (
+{ localStorage.getItem("token")  && (
         <select
           id="dropdown"
           value={selectedFormat}

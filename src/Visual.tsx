@@ -44,7 +44,7 @@ export const onDownloadClickHandler = async (downloadType: string) => {
         `${connectionUrl}/api/v1/connections-json`,
         {
           headers: {
-            "Content-Type": "application/json",
+          
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
@@ -54,12 +54,19 @@ export const onDownloadClickHandler = async (downloadType: string) => {
         `${connectionUrl}/api/v1/download-connections`,
         {
           headers: {
-            "Content-Type": "application/json",
+        
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
     }
+
+    if (!connectionStream.ok) {
+  const errorText = await connectionStream.text(); // read the error message
+  console.error("Failed to download PDF:", connectionStream.status, errorText);
+  alert("Failed to download PDF. Please try again.");
+  return;
+}
 
     let blob;
 
@@ -70,20 +77,19 @@ export const onDownloadClickHandler = async (downloadType: string) => {
     } else {
       blob = await connectionStream.blob(); // Assuming PDF
     }
+  const url = window.URL.createObjectURL(blob);
+     const a = document.createElement('a');
+      a.href = url;
+         a.download =
+    downloadType === "json" ? "connections.json" : "connections.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+//     // Change filename based on file type
+ 
 
-    const url = window.URL.createObjectURL(blob);
 
-    const a = document.createElement("a");
-    document.body.appendChild(a);
-    a.href = url;
-
-    // Change filename based on file type
-    a.download =
-      downloadType === "json" ? "connections.json" : "connections.pdf";
-
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
   } catch (error) {
     console.log("Error downloading the file", error);
   }
