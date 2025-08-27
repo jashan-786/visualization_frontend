@@ -1,13 +1,11 @@
 import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { set, z } from "zod";
+import {  z } from "zod";
 import Wrapper from "../../components/Wrapper";
 import Header from "../../components/Header";
 import { IoIosClose } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
-
 import { searchUser } from "../../utils/helper";
-import axios from "axios";
 import { connectionUrl } from "../../utils/connectionUrl";
 
 export const DeleteUser = () => {
@@ -62,17 +60,15 @@ export const DeleteUser = () => {
       return true;
     }
   };
-  const onChangeHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-  };
+
   const onClickHandler = async () => {
-    // const email = emailRef.current?.value || "";
+  
 
     try {
       const res = validateField(fieldValue, selectedOption === "username" ? "userName" : selectedOption === "email" ? "email" : "phone");
      if(res){
         alert("Please enter a valid " + selectedOption);
-        return; // Stop execution if validation fails
+        return; 
      }
       if(!res){ await fetch(
         `${connectionUrl}/api/v1/deleteuser`,
@@ -266,7 +262,7 @@ export const DeleteUser = () => {
                             />
                           )}
 
-                          {searchedUsers.length > 0 && (
+                          { Array.isArray(searchedUsers) && searchedUsers.length > 0 && (
                             <ul className="absolute z-10 bg-white border border-gray-300 w-full mt-1 max-h-48 overflow-y-auto">
                               {searchedUsers.map((user) => (
                                 <li

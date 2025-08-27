@@ -136,11 +136,11 @@ export const Updateuser = () => {
                 }}
               />
               {searchResults.length > 0 && (
-                <ul className="border max-h-48 overflow-y-auto mt-2">
+                <ul className="border max-h-48 text-black overflow-y-auto mt-2">
                   {searchResults.map((user) => (
                     <li
                       key={user._id}
-                      className="p-2 cursor-pointer hover:bg-gray-200"
+                      className="p-2 cursor-pointer hover:bg-gray-200 text-black"
                       onClick={() => {
                         setSelectedUser(user);
                         setSearchQuery(
@@ -157,7 +157,7 @@ export const Updateuser = () => {
                         ? user.username
                         : searchType === "email"
                         ? user.email
-                        : user.phonenumber}
+                        : user.phoneNumber}
                     </li>
                   ))}
                 </ul>
@@ -233,6 +233,14 @@ export const Updateuser = () => {
                     </label>
                   ))}
                 </div>
+
+                {errors && (
+                  <div className="text-red-500">
+                    {Object.values(errors).map((error) => (
+                      <p key={error}>{error}</p>
+                    ))}
+                  </div>
+                )}
 
                 {/* Buttons */}
                 <div className="flex gap-2 mt-4">

@@ -205,6 +205,7 @@ export const AddConnection = () => {
      
     } catch (error) {
       console.error("Validation error:", error);
+      alert("Please fix the errors in the form.");
       if (error instanceof z.ZodError) {
         console.log(error.errors);
         return;

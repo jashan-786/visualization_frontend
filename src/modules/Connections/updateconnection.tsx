@@ -105,28 +105,28 @@ export const UpdateConnection = () => {
               {/* Search User */}
               <div className="flex gap-3">
                 <div>
-                  <label>{t("Phone Number")}</label>
                   <input
                     type="radio"
                     checked={selectedOption === "phonenumber"}
                     onChange={() => setSelectedOption("phonenumber")}
                   />
+                  <label>{t("Phone Number")}</label>
                 </div>
                 <div>
-                  <label>{t("Username")}</label>
                   <input
                     type="radio"
                     checked={selectedOption === "username"}
                     onChange={() => setSelectedOption("username")}
                   />
+                  <label>{t("Username")}</label>
                 </div>
                 <div>
-                  <label>{t("Email")}</label>
                   <input
                     type="radio"
                     checked={selectedOption === "email"}
                     onChange={() => setSelectedOption("email")}
                   />
+                  <label>{t("Email")}</label>
                 </div>
               </div>
 
@@ -137,11 +137,7 @@ export const UpdateConnection = () => {
                 className="border p-2 rounded w-full"
                 onChange={(e) => {
                   setFieldValue(e.target.value);
-                  searchfnc(
-                    e.target.value,
-                    selectedOption,
-                    setSearchedUsers
-                  );
+                  searchfnc(e.target.value, selectedOption, setSearchedUsers);
                 }}
               />
 
