@@ -360,6 +360,7 @@ const LoadGraph = ({
 
   useEffect(() => {
     sigma.on("enterNode", (event) => {
+      console.log("Hovering node", event.node);
       const node = nodes.find((n: Node) => n.id === event.node);
 
       const obj = {
@@ -404,6 +405,7 @@ export default function Visual() {
     [key: string]: string;
   } | null>(null);
 
+  // this sis used to check when key is pressed 1 time or 2 times
   const [keyHelper, setKeyHelper] = useState<boolean>(false);
   const [refresh, setRefresh] = useState<boolean>(false);
   const [mode, setMode] = useState<string>("single");
@@ -415,9 +417,11 @@ export default function Visual() {
   const [connectedNodes, setConnectedNodes] = useState<{
     [key: string]: ConnectedNode;
   }>({});
+
   const [connectedMultipleNodes, setMultipleConnectedNodes] = useState<{
     [key: string]: ConnectedNode[];
   }>({ "0": [] });
+
   const [postionToFill, setPositionToFill] = useState<number>(0);
 
   function addConnectionMultiple(
@@ -532,7 +536,7 @@ export default function Visual() {
           mainusername: connectedNodes[Object.keys(connectedNodes)[0]].label,
           conusername: connectedNodes[Object.keys(connectedNodes)[1]].label,
         });
-      } catch (error) {
+      } catch (error) {console.log("Error in parsing formObject", error);
         alert(" Please select the correct ones");
         return;
       }
@@ -570,20 +574,20 @@ export default function Visual() {
 
         setTimeout(() => {
           setRefresh((prev) => !prev);
-        }, 1000);
+        }, 100);
       } else return;
     }
   }, [connectedNodes]);
 
-  useEffect(() => {
-    if (keyHelper) {
-      alert(
-        `You have selected connect ${mode} node${
-          mode === "single" ? "" : "s"
-        } by drag and drop. Please select the nodes to connect`
-      );
-    }
-  }, [mode, keyHelper]);
+  // useEffect(() => {
+  //   if (keyHelper) {
+  //     alert(
+  //       `You have selected connect ${mode} node${
+  //         mode === "single" ? "" : "s"
+  //       } by drag and drop. Please select the nodes to connect`
+  //     );
+  //   }
+  // }, [mode, keyHelper]);
 
   useEffect(() => {
 

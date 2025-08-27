@@ -3,27 +3,14 @@ import { CiMail } from "react-icons/ci";
 import { IoIosClose } from "react-icons/io";
 import Header from "./components/Header";
 import { useNavigate } from "react-router-dom";
-import {  useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Wrapper from "./components/Wrapper";
 import { connectionUrl } from "./utils/connectionUrl";
 import { z } from "zod";
 import { useCallback } from "react";
 
 import { useTranslation } from "react-i18next";
-
-function debounce<T extends (...args: any[]) => void>(
-  func: T,
-  delay: number
-): (...args: Parameters<T>) => void {
-  let timer: ReturnType<typeof setTimeout>;
-
-  return (...args: Parameters<T>) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      func(...args);
-    }, delay);
-  };
-}
+import { searchUser } from "./utils/helper";
 
 export interface ConnectionData {
   mainPhone: string;
@@ -37,8 +24,18 @@ export interface ConnectionData {
 }
 
 export const formObject = z.object({
-  mainemail: z.string().email("Invalid email format").optional(),
-  conemail: z.string().email("Invalid email format").optional(),
+  mainemail: z
+    .string()
+    .email("Invalid email format")
+    .optional()
+    .nullable()
+    .or(z.literal("")),
+  conemail: z
+    .string()
+    .email("Invalid email format")
+    .optional()
+    .nullable()
+    .or(z.literal("")),
   mainphone: z
     .string()
     .regex(/^[0-9]{3}-[0-9]{3}-[0-9]{4}$/, "Invalid phone format"),
@@ -47,8 +44,18 @@ export const formObject = z.object({
     .regex(/^[0-9]{3}-[0-9]{3}-[0-9]{4}$/, "Invalid phone format"),
   entityType: z.string().min(1, "Connection type is required"),
   connection: z.string().min(1, "Connection is required"),
-  mainusername: z.string().min(1, "Username is required").optional(),
-  conusername: z.string().min(1, "Username is required").optional(),
+  mainusername: z
+    .string()
+    .min(1, "Username is required")
+    .optional()
+    .nullable()
+    .or(z.literal("")),
+  conusername: z
+    .string()
+    .min(1, "Username is required")
+    .optional()
+    .nullable()
+    .or(z.literal("")),
 });
 
 export const addConnection = async (data: {
@@ -64,16 +71,11 @@ export const addConnection = async (data: {
     },
   });
 
+  console.log("Response:", response);
   if (!response.ok) {
     alert("Failed to add connection");
   } else {
-    const data = await response.json();
-    if (data.present) {
-      return data;
-      alert("Connection already exists");
-    } else {
-      alert("Connection added successfully");
-    }
+    alert("Connection added successfully");
   }
 };
 
@@ -88,15 +90,15 @@ export const AddConnection = () => {
   const mainPhoneRef = useRef<HTMLInputElement>(null);
   const conPhoneRef = useRef<HTMLInputElement>(null);
 
-  const [selecteduser, setSelectedUser] = useState<any | null>({});
-  const [selecteduser2, setSelectedUser2] = useState<any | null>({});
-
+  const [selecteduser, setSelectedUser] = useState<any[] >([]);
+  const [selecteduser2, setSelectedUser2] = useState<any[]>([]);
+  const [searchResult, setSearchResult] = useState<any[]>([]);
+  const [searchResult2, setSearchResult2] = useState<any[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = useState(false);
   const [loading2, setLoading2] = useState(false);
-  const [users, setUsers] = useState<any[]>([]);
-  const [users2, setUsers2] = useState<any[]>([]);
+
   const [showExtraUser1Fields, setShowExtraUser1Fields] = useState({
     email: false,
     username: false,
@@ -105,122 +107,111 @@ export const AddConnection = () => {
     email: false,
     username: false,
   });
- 
+
+  const handleSearch = useCallback(
+    (
+      query: string,
+      type: "phonenumber" | "email" | "username",
+      usertype: "mainuser" | "conuser"
+    ) => {
+      console.log("Search query:", query, type, usertype);
+      if (!query || query.trim() === "" || query.length == 0) {
+        setSearchResult([]);
+        setSearchResult2([]);
+        return;
+      } else if (usertype === "mainuser") {
+        searchUser(query, type, setSearchResult); // search helper fetches matching users
+      } else {
+        searchUser(query, type, setSearchResult2); // search helper fetches matching users
+      }
+      console.log(
+        "Search results:",
+        usertype === "mainuser" ? searchResult : searchResult2
+      );
+    },
+    [searchResult, searchResult2  ]
+  );
+
   const [connectionType, setConnectionType] = useState<string>("Normal");
 
   const [errors, setErrors] = useState<{ [Key: string]: string }>({});
 
-  const searchuser = useCallback(
-    debounce(async (phoneNumber: string, loadingValue: string) => {
-      console.log("true");
-      console.log(phoneNumber);
-      await fetch(
-        `${connectionUrl}/api/v1/user-info?phoneNumber=${phoneNumber}`,
-        {
-          method: "GET",
-
-          headers: {
-            "Content-Type": "application/json",
-            authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      )
-        .then(async (response) => {
-          console.log("done");
-          if (loadingValue == "1") {
-            setLoading(false);
-          } else {
-            setLoading2(false);
-          }
-          const data = await response.json();
-          console.log(data);
-          if (loadingValue == "1") {
-            let newUsers = [];
-            if (data.user.length > 0) {
-              newUsers.push(data.user);
-              setSelectedUser(data.user[0]);
-            } else {
-              setSelectedUser(null);
-            }
-            setUsers(newUsers);
-
-            console.log("users length", newUsers.length);
-          } else {
-            let newUsers2 = [];
-            console.log("users2 length", newUsers2.length);
-
-            if (data.user.length > 0) {
-              newUsers2.push(data.user);
-              setSelectedUser2(data.user[0]);
-            } else {
-              setSelectedUser2(null);
-            }
-            setUsers2(newUsers2);
-          }
-        })
-        .catch(() => {
-          console.log("no results found");
-          setTimeout(() => setLoading(false), 500);
-        });
-    }, 3000),
-    []
-  );
-
   const handleAddConnection = () => {
-
-   
-
     try {
-    const result= formObject.safeParse({
-        mainemail:  mainUserEmail.current ? mainUserEmail.current.value : selecteduser ? selecteduser.email : "",
-        conemail:  conUserEmail.current ? conUserEmail.current.value : selecteduser2 ? selecteduser2.email : "",
-        mainphone:  mainPhoneRef.current ? mainPhoneRef.current.value : selecteduser.phone,
-        conphone:  conPhoneRef.current ? conPhoneRef.current.value : selecteduser2.phone,
+
+     console.log("Selected User 1:", selecteduser);
+      console.log("Selected User 2:", selecteduser2);
+       formObject.parse({
+        mainemail: mainUserEmail.current
+          ? mainUserEmail.current.value
+          : selecteduser
+          ? selecteduser[0].email
+          : "",
+        conemail: conUserEmail.current
+          ? conUserEmail.current.value
+          : selecteduser2
+          ? selecteduser2[0].email
+          : "",
+        mainphone: mainPhoneRef.current
+          ? mainPhoneRef.current.value
+          : selecteduser[0].phone,
+        conphone: conPhoneRef.current
+          ? conPhoneRef.current.value
+          : selecteduser2[0].phone,
         entityType: connectionType,
         connection: connection.current?.value,
-        mainusername:  mainUserName.current ? mainUserName.current.value : selecteduser ? selecteduser.username : "",
-        conusername:conUserName.current ? conUserName.current.value : selecteduser2 ? selecteduser2.username : "",
+        mainusername: mainUserName.current
+          ? mainUserName.current.value
+          : selecteduser
+          ? selecteduser[0].username
+          : "",
+        conusername: conUserName.current
+          ? conUserName.current.value
+          : selecteduser2
+          ? selecteduser2[0].username
+          : "",
       });
 
-      if(result.error){
-          result.error.errors.map((error) => {
-          setErrors((prev) => {
-            return { ...prev, [error.path[0]]: error.message };
-          });
-        });
-      }
 
-
-
-      
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-      
-        console.log(error.errors);
-        return;
-      }
-    }
-
-    let Connections = [];
+      let Connections = [];
 
     Connections.push({
-      mainPhone: mainPhoneRef.current ? mainPhoneRef.current.value : selecteduser.phone,
-      conPhone: conPhoneRef.current ? conPhoneRef.current.value : selecteduser2.phone,
-      mainUserEmail: mainUserEmail.current ? mainUserEmail.current.value : selecteduser ? selecteduser.email : "",
-      mainUserName: mainUserName.current ? mainUserName.current.value : selecteduser ? selecteduser.username : "",
-      conUserEmail: conUserEmail.current ? conUserEmail.current.value : selecteduser2 ? selecteduser2.email : "",
-      conUserName: conUserName.current ? conUserName.current.value : selecteduser2 ? selecteduser2.username : "",
+      mainPhone: mainPhoneRef.current
+        ? mainPhoneRef.current.value
+        : selecteduser[0].phone,
+      conPhone: conPhoneRef.current
+        ? conPhoneRef.current.value
+        : selecteduser2[0].phone,
+      mainUserEmail: mainUserEmail.current
+        ? mainUserEmail.current.value
+        : selecteduser[0].email,
+      mainUserName: mainUserName.current
+        ? mainUserName.current.value
+        : selecteduser[0].username,
+      conUserEmail: conUserEmail.current
+        ? conUserEmail.current.value
+        : selecteduser2[0].email,
+      conUserName: conUserName.current
+        ? conUserName.current.value
+        : selecteduser2[0].username,
       connection: connection.current ? connection.current.value : "",
       entityType: connectionType,
     });
-
-   
-
 
     console.log(Connections);
     addConnection({ connections: Connections });
 
     setErrors({});
+     
+    } catch (error) {
+      console.error("Validation error:", error);
+      if (error instanceof z.ZodError) {
+        console.log(error.errors);
+        return;
+      }
+    }
+
+    
   };
 
   // send a data to backend instead of file
@@ -289,14 +280,19 @@ export const AddConnection = () => {
   };
 
   return (
-    <div className="flex flex-col justify-between min-h-screen">
+    <div
+      className="flex flex-col justify-between min-h-screen "
+     
+    >
       <Header />
 
       {localStorage.getItem("token") ? (
         <div className="py-6  sm:py-12 flex items-center justify-center bg-gray-100 px-4 sm:px-6">
           <div className="w-full max-w-[600px] bg-white rounded-lg shadow-lg p-4 sm:p-8">
             <div className="flex  items-center justify-between mb-4 sm:mb-6">
-              <h1 className="text-xl sm:text-2xl font-bold">{t("Add Connection")}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold">
+                {t("Add Connection")}
+              </h1>
               <button
                 type="button"
                 onClick={(e) => {
@@ -334,7 +330,7 @@ export const AddConnection = () => {
                     // onChange={() => setConnectionType("direct")}
                   />
                   <label className="mx-2" htmlFor="direct">
-                   {t("Normal")}
+                    {t("Normal")}
                   </label>
                 </div>
 
@@ -357,7 +353,7 @@ export const AddConnection = () => {
                     // onChange={() => setConnectionType("indirect")}
                   />
                   <label className="mx-2" htmlFor="indirect">
-                   {t("Workplace")}
+                    {t("Workplace")}
                   </label>
                 </div>
               </div>
@@ -396,9 +392,9 @@ export const AddConnection = () => {
                     placeholder="123-456-7890"
                     required
                     onChange={(e) => {
-                      setUsers([]);
-                      setLoading(true);
-                      searchuser(e.target.value, "1");
+                      setSearchResult([]);
+
+                      handleSearch(e.target.value, "phonenumber", "mainuser");
                     }}
                   />
                 </div>
@@ -409,40 +405,48 @@ export const AddConnection = () => {
                   {t("Put a phone number that matches the format.")}
                 </p>
 
-                {loading ? (
-                  <div className=" w-auto  h-max my-2 border-2 bg-gray-300 ">
-                    {t("Searching...")}
-                  </div>
-                ) : users.length > 0 ? (
-                  <div className="w-full h-max my-2 border-2 bg-gray-300 p-2">
-                    <ul>
-                      {users.map((user, index) => {
-                        return (
-                          <li
-                            onClick={() => {
-                              setSelectedUser(user[0]);
-                              console.log(user[0]);
-                              if (mainUserEmail?.current) {
-                                console.log(user[0].email);
-                                mainUserEmail.current.value = user[0].email;
-                              }
-                              if (mainUserName?.current) {
-                                mainUserName.current.value = user[0].username;
-                              }
-
-                              setUsers([]);
+                {Array.isArray(searchResult) && searchResult.length > 0 ? (
+                  <ul className="border max-h-48 overflow-y-auto">
+                    {searchResult.map((user, index) => {
+                      return (
+                        <li
+                         onClick={() => {
+                              setSelectedUser([user]);
+                              setSearchResult([]);
+                              if (mainPhoneRef.current)
+                                mainPhoneRef.current.value = user.phoneNumber;
+                              if (mainUserEmail.current)
+                                mainUserEmail.current.value = user.email;
+                              if (mainUserName.current)
+                                mainUserName.current.value = user.username;
+                              console.log(mainUserEmail.current?.value);
+                              console.log(mainUserName.current?.value);
+                              console.log(mainPhoneRef.current?.value);
+                              console.log("Selected User 1:", user);
                             }}
-                            key={index}
-                          >
-                            {user[0].phoneNumber}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
+                          className="p-2 cursor-pointer hover:bg-gray-200"
+                          key={index}
+                        >
+                          {user.phoneNumber}
+                        </li>
+                      );
+                    })}
+                  </ul>
                 ) : (
                   <></>
                 )}
+
+                {selecteduser === null || selecteduser === undefined  && 
+                <div className="flex items-center gap-2 my-2">
+                  <label>Manually Entry Details</label>
+                  <input
+                    checked={loading}
+                    type="checkbox"
+                    placeholder="Enter details"
+                    className="border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300"
+                    onChange={(e) => setLoading(e.target.checked)}
+                  />
+                </div> }
               </div>
 
               {errors.mainphone && (
@@ -451,7 +455,7 @@ export const AddConnection = () => {
             </div>
 
             <div className="space-y-5 my-4 sm:space-y-6">
-              {selecteduser == null && (
+              {loading && (
                 <>
                   <p className="text-gray-500 text-sm">
                     {t("Please select the information for the user.")}
@@ -471,7 +475,9 @@ export const AddConnection = () => {
                             }));
                       }}
                     />
-                    <label className="text-gray-500 text-sm">{t("Add Email")}</label>
+                    <label className="text-gray-500 text-sm">
+                      {t("Add Email")}
+                    </label>
 
                     <input
                       type="checkbox"
@@ -564,8 +570,11 @@ export const AddConnection = () => {
                       placeholder="123-456-7890"
                       required
                       onChange={(e) => {
-                        setLoading2(true);
-                        searchuser(e.target.value, "2");
+                        searchUser(
+                          e.target.value,
+                          "phonenumber",
+                          setSearchResult2
+                        );
                       }}
                     />
                   </div>
@@ -575,47 +584,57 @@ export const AddConnection = () => {
                   >
                     {t("Put a phone number that matches the format.")}
                   </p>
+
+                  {searchResult2 && searchResult2.length > 0 ? (
+                    <ul className="border max-h-48 overflow-y-auto">
+                      {searchResult2.map((user, index) => {
+                        return (
+                          <li
+                            onClick={() => {
+                              setSelectedUser2([user]);
+                              setSearchResult2([]);
+                              if (conUserEmail.current)
+                                conUserEmail.current.value = user.email;
+                              if (conUserName.current)
+                                conUserName.current.value = user.username;
+                              if (conPhoneRef.current)
+                                conPhoneRef.current.value = user.phoneNumber;
+                              console.log(conUserEmail.current?.value);
+                              console.log(conUserName.current?.value);
+                              console.log(conPhoneRef.current?.value);
+                              console.log("Selected User 2:", user);
+                            }}
+                            className="p-2 cursor-pointer hover:bg-gray-200"
+                            key={index}
+                          >
+                            {user.phoneNumber}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <></>
+                  )}
                 </div>
 
                 {errors.conphone && (
                   <p className="text-red-500 text-sm">{errors.conphone}</p>
                 )}
-                {loading2 ? (
-                  <div className=" w-auto  h-max my-2 border-2 bg-gray-300 ">
-                    {t("Searching...")}
-                  </div>
-                ) : users2.length > 0 ? (
-                  <div className="w-full h-max my-2 border-2 bg-gray-300 p-2">
-                    <ul>
-                      {users2.map((user, index) => {
-                        return (
-                          <li
-                            onClick={() => {
-                              setSelectedUser2(user[0]);
-                              console.log(selecteduser2);
-                              if (mainUserEmail?.current) {
-                                mainUserEmail.current.value = user[0].email;
-                              }
-                              if (mainUserName?.current) {
-                                mainUserName.current.value = user.username;
-                              }
-
-                              setUsers2([]);
-                            }}
-                            key={index}
-                          >
-                            {user[0].phoneNumber}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                ) : (
-                  <></>
-                )}
               </div>
-           
-              {selecteduser2 == null && (
+
+              {Array.isArray(searchResult2) && searchResult2.length > 0  && (
+                <div className="flex items-center gap-2 ">
+                  <label>Manually Entry Details</label>
+                  <input
+                    checked={loading2}
+                    type="checkbox"
+                    placeholder="Enter details"
+                    className="border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-300"
+                    onChange={(e) => setLoading2(e.target.checked)}
+                  />
+                </div>
+              )}
+              {loading2 && (
                 <>
                   <p className="text-gray-500 text-sm">
                     {t("Please select the information for the user.")}
@@ -635,7 +654,9 @@ export const AddConnection = () => {
                             }));
                       }}
                     />
-                    <label className="text-gray-500 text-sm">{t("Add Email")}</label>
+                    <label className="text-gray-500 text-sm">
+                      {t("Add Email")}
+                    </label>
 
                     <input
                       type="checkbox"
@@ -647,7 +668,7 @@ export const AddConnection = () => {
                             }))
                           : setShowExtraUser2Fields((prev) => ({
                               ...prev,
-                              username: false,  
+                              username: false,
                             }));
                       }}
                     />
@@ -737,9 +758,13 @@ export const AddConnection = () => {
 
               <div className="mt-4 p-3 sm:p-4 bg-blue-50 rounded-lg">
                 <div className="flex items-center">
-                  <span className="material-symbols-outlined mr-2">{t("info")}: </span>
+                  <span className="material-symbols-outlined mr-2">
+                    {t("info")}:{" "}
+                  </span>
                   <p className="text-xs sm:text-sm">
-                    {t("Current connections will appear in the visualizer after being added")}
+                    {t(
+                      "Current connections will appear in the visualizer after being added"
+                    )}
                   </p>
                 </div>
               </div>
